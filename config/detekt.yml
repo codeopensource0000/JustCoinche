@@ -1,0 +1,17 @@
+# Only the rules where this project deliberately differs from detekt's defaults.
+# Everything else comes from the bundled default config
+# (buildUponDefaultConfig = true), so this file stays short enough to read.
+
+style:
+  MaxLineLength:
+    maxLineLength: 120
+  MagicNumber:
+    # Tests assert concrete card values and scores; naming every one of them
+    # would make the expected numbers harder to check against the rules.
+    excludes: ['**/test/**']
+
+naming:
+  FunctionNaming:
+    # Test functions are `written as sentences in backticks`, which is the
+    # idiomatic Kotlin way to name them.
+    excludes: ['**/test/**']

@@ -1,0 +1,23 @@
+# Gradle and Kotlin build outputs
+.gradle/
+.kotlin/
+build/
+
+# Local machine configuration: holds absolute paths such as the SDK location
+# and the home directory, which must never be published.
+local.properties
+
+# IDE
+.idea/
+*.iml
+
+# macOS
+.DS_Store
+
+# Signing material
+*.jks
+*.keystore
+keystore.properties
+
+# Personal editor settings
+.vscode/
