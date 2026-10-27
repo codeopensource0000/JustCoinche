@@ -2,6 +2,13 @@
 # Everything else comes from the bundled default config
 # (buildUponDefaultConfig = true), so this file stays short enough to read.
 
+complexity:
+  TooManyFunctions:
+    # A set type's operations (membership, add, remove, union, intersection,
+    # filter, iteration...) are its contract, not a sign of a class doing too
+    # much. 15 leaves room for CardSet while still flagging a grab-bag class.
+    thresholdInClasses: 15
+
 style:
   MaxLineLength:
     maxLineLength: 120

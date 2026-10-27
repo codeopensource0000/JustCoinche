@@ -36,6 +36,13 @@ value class CardSet(val bits: Int) {
         }
     }
 
+    /** The cards of this set for which [predicate] holds. */
+    inline fun filter(predicate: (Card) -> Boolean): CardSet {
+        var result = EMPTY
+        forEach { if (predicate(it)) result += it }
+        return result
+    }
+
     fun toList(): List<Card> {
         // Deliberately not `buildList { forEach { add(it) } }`: inside buildList,
         // `forEach` resolves to the list being built (still empty), not to this set.
