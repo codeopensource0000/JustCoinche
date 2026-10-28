@@ -74,8 +74,8 @@ Total : 4 × (14 + 9 + 6 + 5 + 3 + 1) = 152. (Un autre barème circule, V 13 / D
 
 | Paramètre | Options | Statut |
 |---|---|---|
-| `allowNoTrump` | oui / non | ✅ paramètre |
-| `allowAllTrump` | oui / non | ✅ paramètre |
+| `allowNoTrump` | oui / non | ✅ paramètre, défaut **oui** |
+| `allowAllTrump` | oui / non | ✅ paramètre, défaut **oui** |
 
 ## 4. Enchères
 
@@ -87,7 +87,13 @@ Total : 4 × (14 + 9 + 6 + 5 + 3 + 1) = 152. (Un autre barème circule, V 13 / D
 - Une annonce doit être strictement supérieure à la précédente : valeurs de 80 à 160
   par paliers de 10, puis capot.
 - Un joueur qui a passé peut reparler plus tard si quelqu'un a annoncé entre-temps.
-- Fin des enchères : trois passes consécutives après une annonce, une coinche, ou un capot.
+- Fin des enchères : trois passes consécutives après une annonce, ou une coinche (suivie de la
+  réponse de l'équipe coinchée).
+- **Capot** : c'est l'annonce la plus haute, sauf le **capot belote** (voir ci-dessous). Après un
+  capot, on fait un **tour à blanc** : les autres joueurs ne peuvent que passer ou coincher. ✅
+- **Capot belote** : annonce à **270**, au-dessus du capot. Pas encore implémenté. ❓ À préciser :
+  faut-il détenir la belote pour l'annoncer, sur quel tour peut-on l'annoncer après un capot,
+  et combien marque-t-il en réussite et en chute (modes A et B) ?
 - Si les quatre joueurs passent d'entrée : les cartes sont redistribuées par le donneur suivant.
 
 ### Coinche et surcoinche
@@ -100,8 +106,9 @@ Total : 4 × (14 + 9 + 6 + 5 + 3 + 1) = 152. (Un autre barème circule, V 13 / D
 |---|---|---|
 | `bidStep` | 10 | ✅ |
 | `minBid` / `maxBid` | 80 à 160 en pratique, puis capot. 170 et 180 sont possibles avec la belote (jamais vus en pratique) : le moteur les autorise | ✅ |
-| `coincheTiming` | `ANY_TIME` (« à la volée » : n'importe quel adversaire, à n'importe quel moment) / `IN_TURN` (seulement à son tour) | ✅ les deux, paramétrables. ⚠️ Impact sur l'interface : en mode « à la volée », l'humain doit pouvoir coincher pendant que les IA parlent |
+| `coincheTiming` | `ANY_TIME` (« à la volée » : n'importe quel adversaire, à n'importe quel moment) / `IN_TURN` (seulement à son tour) | ✅ les deux, paramétrables, défaut **à son tour**. ⚠️ Impact sur l'interface : en mode « à la volée », l'humain doit pouvoir coincher pendant que les IA parlent |
 | `coincheEndsBidding` | oui | ✅ toujours (pas un paramètre) |
+| réponse à la coinche | l'équipe coinchée répond à tour de rôle : d'abord le joueur qui suit le coincheur, puis son partenaire. Le premier qui surcoinche termine ; deux passes laissent le contrat coinché | ✅ |
 | `capotCanBeCoinched` | oui | ✅ |
 | `allowGenerale` | un seul joueur fait les 8 plis | ⏸ plus tard (absente des règles usuelles, impact sur les enchères) |
 | `equalBidSuitRanking` | même valeur dans une couleur plus haute | ⛔ proposé (variante rare) |

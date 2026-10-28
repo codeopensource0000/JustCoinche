@@ -1,6 +1,11 @@
 package justcoinche.engine
 
-enum class CoincheLevel { NONE, COINCHED, SURCOINCHED }
+/** How far the contract was doubled, and by how much that multiplies its value. */
+enum class CoincheLevel(val multiplier: Int) {
+    NONE(1),
+    COINCHED(2),
+    SURCOINCHED(3),
+}
 
 /** What the declarer's team has to make, as settled by the auction. */
 data class Contract(

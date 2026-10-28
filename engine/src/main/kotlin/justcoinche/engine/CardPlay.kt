@@ -54,6 +54,17 @@ class CardPlay private constructor(
         return cardPoints + lastTrick + belote
     }
 
+    /** What the finished card play gives the scoring. */
+    fun outcome(): PlayOutcome {
+        check(isOver) { "The deal is not over" }
+        val winningTeams = tricks.map { winnerOf(it).team }.toSet()
+        return PlayOutcome(
+            pointsMade = TeamPoints(points(Team.NORTH_SOUTH), points(Team.EAST_WEST)),
+            beloteTeam = beloteTeam,
+            capotTeam = winningTeams.singleOrNull(),
+        )
+    }
+
     private fun winnerOf(trick: Trick): Seat = checkNotNull(trick.winner(contract))
 
     companion object {

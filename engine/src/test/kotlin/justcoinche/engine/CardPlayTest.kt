@@ -68,6 +68,19 @@ class CardPlayTest {
     }
 
     @Test
+    fun `the outcome sums up points made, belote and capot for the scoring`() {
+        val end = playOut(CardPlay.start(bySuit, ContractType.SuitTrump(Suit.CLUBS), rules, Seat.SOUTH), Random(1))
+        assertEquals(PlayOutcome(TeamPoints(182, 0), Team.NORTH_SOUTH, Team.NORTH_SOUTH), end.outcome())
+
+        // When each team wins at least one trick, there is no capot.
+        val random = Random(21)
+        val mixed = generateSequence {
+            playOut(CardPlay.start(Deal.random(random), ContractType.NoTrump, rules, Seat.SOUTH), random)
+        }.first { play -> play.tricks.map { it.winner(ContractType.NoTrump)?.team }.toSet().size == 2 }
+        assertNull(mixed.outcome().capotTeam)
+    }
+
+    @Test
     fun `the belote belongs to the team holding king and queen of trumps, in suit contracts only`() {
         fun beloteTeam(contract: ContractType) = CardPlay.start(bySuit, contract, rules, Seat.SOUTH).beloteTeam
         assertEquals(Team.NORTH_SOUTH, beloteTeam(ContractType.SuitTrump(Suit.CLUBS))) // South

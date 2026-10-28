@@ -1,6 +1,11 @@
 package justcoinche.engine
 
-enum class Team { NORTH_SOUTH, EAST_WEST }
+enum class Team {
+    NORTH_SOUTH,
+    EAST_WEST;
+
+    val opponent: Team get() = if (this == NORTH_SOUTH) EAST_WEST else NORTH_SOUTH
+}
 
 /**
  * The four seats, declared in playing order. Play goes anticlockwise: after

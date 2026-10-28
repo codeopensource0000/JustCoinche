@@ -16,6 +16,8 @@ style:
     # Tests assert concrete card values and scores; naming every one of them
     # would make the expected numbers harder to check against the rules.
     excludes: ['**/test/**']
+    # In `SURCOINCHED(3)` the enum entry already names the number.
+    ignoreEnums: true
 
 naming:
   FunctionNaming:
