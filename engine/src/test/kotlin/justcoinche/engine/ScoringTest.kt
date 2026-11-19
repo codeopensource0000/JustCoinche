@@ -16,8 +16,8 @@ import kotlin.test.assertEquals
 class ScoringTest {
 
     private val hearts = ContractType.SuitTrump(Suit.HEARTS)
-    private val modeA = Rules(scoringMode = ScoringMode.CONTRACT_ONLY)
-    private val modeB = Rules(scoringMode = ScoringMode.POINTS_MADE_PLUS_CONTRACT)
+    private val contractPoints = Rules(scoringMode = ScoringMode.CONTRACT_POINTS)
+    private val contractAndPointsMade = Rules(scoringMode = ScoringMode.CONTRACT_AND_POINTS_MADE)
 
     private fun bid(value: Int, coinche: CoincheLevel = NONE) =
         Contract(Seat.NORTH, hearts, value, isCapot = false, coinche = coinche)
@@ -31,105 +31,110 @@ class ScoringTest {
     private fun score(contract: Contract, outcome: PlayOutcome, rules: Rules, round: Boolean = true) =
         scoreDeal(contract, outcome, rules, round)
 
-    // ---- Mode B: points made + contract ----
+    // ---- "Contrat et points faits" ----
 
     @Test
-    fun `B - a made contract scores contract plus points made, the defence its own points`() {
+    fun `contract and points made - a made contract scores contract plus points made, the defence its own points`() {
         // 80 hearts, 100 points made (102 raw): 80 + 100 = 180; the defence 60.
-        assertEquals(TeamPoints(180, 60), score(bid(80), outcome(102, 60), modeB))
+        assertEquals(TeamPoints(180, 60), score(bid(80), outcome(102, 60), contractAndPointsMade))
     }
 
     @Test
-    fun `B - points made are rounded to the nearest ten, a 5 rounding up`() {
-        assertEquals(TeamPoints(80 + 90, 80), score(bid(80), outcome(86, 76), modeB)) // the 6-and-6 case: 170
-        assertEquals(TeamPoints(80 + 90, 80), score(bid(80), outcome(85, 77), modeB))
+    fun `contract and points made - points made are rounded to the nearest ten, a 5 rounding up`() {
+        // The 6-and-6 case: the deal is worth 170 in all.
+        assertEquals(TeamPoints(80 + 90, 80), score(bid(80), outcome(86, 76), contractAndPointsMade))
+        assertEquals(TeamPoints(80 + 90, 80), score(bid(80), outcome(85, 77), contractAndPointsMade))
     }
 
     @Test
-    fun `B - the final deal of a game is not rounded`() {
+    fun `contract and points made - the final deal of a game is not rounded`() {
         // At 960 in a game to 1000: a 100 made with 112 points scores 212 and ends at 1172.
-        assertEquals(TeamPoints(212, 50), score(bid(100), outcome(112, 50), modeB, round = false))
+        assertEquals(TeamPoints(212, 50), score(bid(100), outcome(112, 50), contractAndPointsMade, round = false))
     }
 
     @Test
-    fun `B - a failed contract gives the defence 160, the contract and the declarer's belote`() {
+    fun `contract and points made - a failed contract gives the defence 160, the contract and the declarer's belote`() {
         // 100 with the belote, failed: the defence scores 100 + 160 + 20 = 280.
-        assertEquals(TeamPoints(0, 280), score(bid(100), outcome(95, 87, belote = NORTH_SOUTH), modeB))
+        assertEquals(TeamPoints(0, 280), score(bid(100), outcome(95, 87, belote = NORTH_SOUTH), contractAndPointsMade))
     }
 
     @Test
-    fun `B - when the table says so, the failed declarer keeps its belote`() {
-        val rules = modeB.copy(beloteKeptOnFailure = true)
+    fun `contract and points made - when the table says so, the failed declarer keeps its belote`() {
+        val rules = contractAndPointsMade.copy(beloteKeptOnFailure = true)
         assertEquals(TeamPoints(20, 260), score(bid(100), outcome(95, 87, belote = NORTH_SOUTH), rules))
     }
 
     @Test
-    fun `B - the defence's belote always scores`() {
-        assertEquals(TeamPoints(0, 280), score(bid(100), outcome(70, 112, belote = EAST_WEST), modeB))
-        assertEquals(TeamPoints(180, 80), score(bid(80), outcome(100, 82, belote = EAST_WEST), modeB))
+    fun `contract and points made - the defence's belote always scores`() {
+        assertEquals(TeamPoints(0, 280), score(bid(100), outcome(70, 112, belote = EAST_WEST), contractAndPointsMade))
+        assertEquals(TeamPoints(180, 80), score(bid(80), outcome(100, 82, belote = EAST_WEST), contractAndPointsMade))
     }
 
     @Test
-    fun `B - success is decided on raw points, never on rounded ones`() {
+    fun `contract and points made - success is decided on raw points, never on rounded ones`() {
         // 99 would round to 100, but a 100 needs 100 raw points.
-        assertEquals(TeamPoints(0, 260), score(bid(100), outcome(99, 63), modeB))
+        assertEquals(TeamPoints(0, 260), score(bid(100), outcome(99, 63), contractAndPointsMade))
         // 80 with the belote is made with 60 card points.
-        assertEquals(TeamPoints(160, 100), score(bid(80), outcome(80, 102, belote = NORTH_SOUTH), modeB))
+        assertEquals(
+            TeamPoints(160, 100),
+            score(bid(80), outcome(80, 102, belote = NORTH_SOUTH), contractAndPointsMade),
+        )
     }
 
     @Test
-    fun `B - all eight tricks without a capot bid score the contract plus 250`() {
-        assertEquals(TeamPoints(370, 0), score(bid(120), outcome(162, 0, capot = NORTH_SOUTH), modeB))
+    fun `contract and points made - all eight tricks without a capot bid score the contract plus 250`() {
+        assertEquals(TeamPoints(370, 0), score(bid(120), outcome(162, 0, capot = NORTH_SOUTH), contractAndPointsMade))
     }
 
     @Test
-    fun `B - an announced capot scores 500, or gives 410 when it fails`() {
-        assertEquals(TeamPoints(500, 0), score(capot(), outcome(162, 0, capot = NORTH_SOUTH), modeB))
-        assertEquals(TeamPoints(0, 410), score(capot(), outcome(150, 12), modeB))
+    fun `contract and points made - an announced capot scores 500, or gives 410 when it fails`() {
+        assertEquals(TeamPoints(500, 0), score(capot(), outcome(162, 0, capot = NORTH_SOUTH), contractAndPointsMade))
+        assertEquals(TeamPoints(0, 410), score(capot(), outcome(150, 12), contractAndPointsMade))
     }
 
     @Test
-    fun `B - a coinche doubles the contract only, and a coinched defence scores nothing`() {
+    fun `contract and points made - a coinche doubles the contract only, and a coinched defence scores nothing`() {
         // 100 coinched, made with 120: 2 x 100 + 120 = 320. Failed: 2 x 100 + 160 = 360.
-        assertEquals(TeamPoints(320, 0), score(bid(100, COINCHED), outcome(120, 42), modeB))
-        assertEquals(TeamPoints(0, 360), score(bid(100, COINCHED), outcome(80, 82), modeB))
+        assertEquals(TeamPoints(320, 0), score(bid(100, COINCHED), outcome(120, 42), contractAndPointsMade))
+        assertEquals(TeamPoints(0, 360), score(bid(100, COINCHED), outcome(80, 82), contractAndPointsMade))
     }
 
     @Test
-    fun `B - a surcoinche triples the contract`() {
-        assertEquals(TeamPoints(420, 0), score(bid(100, SURCOINCHED), outcome(120, 42), modeB))
+    fun `contract and points made - a surcoinche triples the contract`() {
+        assertEquals(TeamPoints(420, 0), score(bid(100, SURCOINCHED), outcome(120, 42), contractAndPointsMade))
     }
 
-    // ---- Mode A: contract only ----
+    // ---- "Points au contrat" ----
 
     @Test
-    fun `A - a made contract scores its value only, even with every trick`() {
-        assertEquals(TeamPoints(80, 0), score(bid(80), outcome(162, 0, capot = NORTH_SOUTH), modeA))
-    }
-
-    @Test
-    fun `A - a plain failure gives the defence a fixed 160`() {
-        assertEquals(TeamPoints(0, 160), score(bid(130), outcome(120, 42), modeA))
+    fun `contract points - a made contract scores its value only, even with every trick`() {
+        assertEquals(TeamPoints(80, 0), score(bid(80), outcome(162, 0, capot = NORTH_SOUTH), contractPoints))
     }
 
     @Test
-    fun `A - a coinched contract is worth twice its value either way`() {
-        assertEquals(TeamPoints(0, 160), score(bid(80, COINCHED), outcome(70, 92), modeA)) // same as a plain failure
-        assertEquals(TeamPoints(0, 180), score(bid(90, COINCHED), outcome(70, 92), modeA))
-        assertEquals(TeamPoints(180, 0), score(bid(90, COINCHED), outcome(100, 62), modeA))
+    fun `contract points - a plain failure gives the defence a fixed 160`() {
+        assertEquals(TeamPoints(0, 160), score(bid(130), outcome(120, 42), contractPoints))
     }
 
     @Test
-    fun `A - an announced capot is worth 250 either way, 500 coinched`() {
-        assertEquals(TeamPoints(250, 0), score(capot(), outcome(162, 0, capot = NORTH_SOUTH), modeA))
-        assertEquals(TeamPoints(0, 250), score(capot(), outcome(150, 12), modeA))
-        assertEquals(TeamPoints(0, 500), score(capot(COINCHED), outcome(150, 12), modeA))
+    fun `contract points - a coinched contract is worth twice its value either way`() {
+        // 80 coinched and failed costs 160, the same as a plain failure.
+        assertEquals(TeamPoints(0, 160), score(bid(80, COINCHED), outcome(70, 92), contractPoints))
+        assertEquals(TeamPoints(0, 180), score(bid(90, COINCHED), outcome(70, 92), contractPoints))
+        assertEquals(TeamPoints(180, 0), score(bid(90, COINCHED), outcome(100, 62), contractPoints))
     }
 
     @Test
-    fun `A - the declarer's belote never scores, the defence's always does`() {
-        assertEquals(TeamPoints(80, 0), score(bid(80), outcome(100, 82, belote = NORTH_SOUTH), modeA))
-        assertEquals(TeamPoints(80, 20), score(bid(80), outcome(100, 82, belote = EAST_WEST), modeA))
+    fun `contract points - an announced capot is worth 250 either way, 500 coinched`() {
+        assertEquals(TeamPoints(250, 0), score(capot(), outcome(162, 0, capot = NORTH_SOUTH), contractPoints))
+        assertEquals(TeamPoints(0, 250), score(capot(), outcome(150, 12), contractPoints))
+        assertEquals(TeamPoints(0, 500), score(capot(COINCHED), outcome(150, 12), contractPoints))
+    }
+
+    @Test
+    fun `contract points - the declarer's belote never scores, the defence's always does`() {
+        assertEquals(TeamPoints(80, 0), score(bid(80), outcome(100, 82, belote = NORTH_SOUTH), contractPoints))
+        assertEquals(TeamPoints(80, 20), score(bid(80), outcome(100, 82, belote = EAST_WEST), contractPoints))
     }
 
     @Test

@@ -91,9 +91,10 @@ Total : 4 × (14 + 9 + 6 + 5 + 3 + 1) = 152. (Un autre barème circule, V 13 / D
   réponse de l'équipe coinchée).
 - **Capot** : c'est l'annonce la plus haute, sauf le **capot belote** (voir ci-dessous). Après un
   capot, on fait un **tour à blanc** : les autres joueurs ne peuvent que passer ou coincher. ✅
-- **Capot belote** : annonce à **270**, au-dessus du capot. Pas encore implémenté. ❓ À préciser :
-  faut-il détenir la belote pour l'annoncer, sur quel tour peut-on l'annoncer après un capot,
-  et combien marque-t-il en réussite et en chute (modes A et B) ?
+- **Capot belote** : annonce à **270**, au-dessus du capot ; on peut donc l'annoncer pendant le
+  tour à blanc qui suit un capot. On peut l'annoncer sans détenir la belote, mais un capot belote
+  sans la belote est une **chute**. Il vaut toujours 270, plus les points faits en mode
+  « contrat et points faits ». ✅ Pas encore implémenté : voir les ❓ du §8.
 - Si les quatre joueurs passent d'entrée : les cartes sont redistribuées par le donneur suivant.
 
 ### Coinche et surcoinche
@@ -141,7 +142,7 @@ Le joueur à droite du donneur entame le premier pli. Celui qui remporte un pli 
 
 | Paramètre | Options | Statut |
 |---|---|---|
-| `mustUnderTrump` (« pisser ») | oui : quand un adversaire a coupé et qu'on ne peut ni fournir ni surcouper, on doit quand même jouer un atout plus petit / non : défausse libre dans ce cas | ✅ paramètre prioritaire (variante très répandue, fort impact stratégique, voir §10) |
+| `mustUnderTrump` (sous-couper obligatoire) | **oui (défaut)** : quand un adversaire a coupé plus haut et qu'on ne peut ni fournir ni surcouper, on doit quand même jouer un atout plus petit (« sous-couper ») / **non (option)** : on peut alors « pisser », c'est-à-dire se défausser d'une autre couleur | ✅ paramètre prioritaire (variante très répandue, fort impact stratégique, voir §10). Vocabulaire de l'auteur : « pisser » = se défausser, ce qu'on fait toujours sans atout ou quand le partenaire est maître |
 | `mustOvertrumpPartner` | oui : sur un atout demandé, on doit monter même sur le partenaire | ✅ règle retenue |
 | `partnerMasterFreesDiscard` | oui : partenaire maître, pas d'obligation de couper | ✅ règle retenue |
 
@@ -159,7 +160,7 @@ Le joueur à droite du donneur entame le premier pli. Celui qui remporte un pli 
 |---|---|---|
 | `beloteCountsForContract` | oui | ✅ La belote compte pour le contrat : le total passe de 162 à 182. Exemple : 120 avec la belote, il suffit de 100 points de plis |
 | `beloteForDefenders` | oui | ✅ |
-| `beloteKeptOnFailure` | oui : le preneur garde ses 20 points en cas de chute / non : ils passent à la défense | ✅ paramètre, défaut **non** : la défense récupère la belote. Ex. mode B, 100 avec belote chuté → défense 100 + 160 + 20 = 280 |
+| `beloteKeptOnFailure` | oui : le preneur garde ses 20 points en cas de chute / non : ils passent à la défense | ✅ paramètre, défaut **non** : la défense récupère la belote. Ex. en contrat et points faits, 100 avec belote chuté → défense 100 + 160 + 20 = 280 |
 | annonce de la belote | automatique (toujours faite) | ✅ |
 | belote en tout-atout | Roi + Dame d'une même couleur, donc **plusieurs belotes possibles** | ⛔ désactivée (choix de l'auteur). Impact de jeu majeur : avec deux belotes, un 80 ne demande que 40 points de plis. Réactivable plus tard |
 | belote en sans-atout | n'existe pas | ✅ |
@@ -184,7 +185,7 @@ C'est la variante la plus structurante pour l'IA (voir §10). Deux modes retenus
 de der + belote), D = points faits par la défense, m = multiplicateur (1 normal, 2 coinché,
 3 surcoinché). La belote n'est jamais multipliée.
 
-### Mode A : « points au contrat » (`CONTRACT_ONLY`) ✅
+### Mode « points au contrat » (`CONTRACT_POINTS`) ✅ — mode par défaut ❓ à confirmer
 
 Exemple : contrat 80 ♥.
 
@@ -204,13 +205,13 @@ réussi rapporte 80.
 Remarque : un 80 coinché chuté donne 160, autant qu'une chute non coinchée. La coinche à 80
 sert surtout à **figer le contrat** (voir §10).
 
-En mode A, la belote **du preneur** ne rapporte rien en plus du contrat : elle sert seulement
+En mode « points au contrat », la belote **du preneur** ne rapporte rien en plus du contrat : elle sert seulement
 à l'atteindre. ✅
 
 ⚠️ Écart avec les sources (voir §11) : Wikipédia décrit une chute à **C** (et non 160) et une
-belote jamais ajoutée au score en mode A.
+belote jamais ajoutée au score dans ce mode.
 
-### Mode B : « points faits + contrat » (`POINTS_MADE_PLUS_CONTRACT`) ✅
+### Mode « contrat et points faits » (`CONTRACT_AND_POINTS_MADE`) ✅
 
 Exemple : contrat 80 ♥, le preneur fait 100 points.
 
@@ -223,22 +224,32 @@ ces 182 points.
 | Chuté | 0 | **160 + C** (ex. chute à 130 → 290), **+ 20** si une belote a été annoncée, quelle que soit l'équipe |
 | Réussi, coinché ou surcoinché | **m × C + F** | **0** |
 | Chuté, coinché ou surcoinché | 0 | **m × C + 160** |
-| Tous les plis faits sans capot annoncé | **C + 250** (ex. 120 + 250 = 370) : les 250 remplacent les 160 de la donne | 0 |
-| Capot annoncé, réussi | **m × 250 + 250** (500 sans coinche) | 0 |
+| Tous les plis faits sans capot annoncé | **C + 250** (ex. 120 + 250 = 370) : les 250 remplacent les 160 de la donne ; **+ 20** si le preneur a la belote ✅ | 0 |
+| Capot annoncé, réussi | **m × 250 + 250** (500 sans coinche) ; **+ 20** si le preneur a la belote ✅ | 0 |
 | Capot annoncé, chuté | 0 | **m × 250 + 160** (410 sans coinche) |
-| Belote de la défense | — | **+ 20**, toujours |
+| Belote de la défense | — | **+ 20**, toujours, y compris contre un contrat coinché réussi : la belote en défense n'est pas prenable ✅ |
 
 Règle générale : le contrat d'un capot annoncé vaut 250, et c'est **le contrat** que la
 coinche multiplie, comme pour n'importe quel autre contrat.
 
-### Arrondi des points faits (mode B)
+### Capot belote (270) : questions restantes avant implémentation
+
+- ❓ « Sans la belote, c'est une chute » : la belote doit-elle être dans la main **du preneur**,
+  ou suffit-il qu'elle soit dans son équipe (chez son partenaire) ?
+- ❓ En contrat et points faits, réussi : 270 + **250** (les points d'un capot) = 520, ou
+  270 + 182 (les points réellement faits, belote comprise) ? Et la belote est-elle comptée en plus,
+  ou déjà incluse dans les 270 ?
+- ❓ Chuté : la défense marque-t-elle 270 + 160 en contrat et points faits (270 en points au
+  contrat) ? La coinche multiplie-t-elle les 270 comme pour les autres contrats ?
+
+### Arrondi des points faits (mode « contrat et points faits »)
 
 - Toujours à la dizaine la plus proche, 5 arrondi au-dessus : 44 → 40, 48 → 50, 85 → 90,
   77 → 80.
 - Conséquence : si les deux équipes finissent par 5/7 ou 6/6 (ex. 76 et 86 → 80 et 90),
   la donne rapporte 170 au total. Sans importance pratique, mais à implémenter tel quel.
 - **Donne finale : pas d'arrondi.** La donne finale est celle où une équipe dépasse le score
-  cible. Exemple (partie en 1000, mode B) : à 960, je fais un 100 avec 112 points ; je marque
+  cible. Exemple (partie en 1000, mode « contrat et points faits ») : à 960, je fais un 100 avec 112 points ; je marque
   100 + 112 = 212 sans arrondi et termine à 1172. Une égalité exacte devient quasi impossible. ✅
   Hypothèse : les points de la défense ne sont pas arrondis non plus sur cette donne.
 
@@ -246,7 +257,7 @@ coinche multiplie, comme pour n'importe quel autre contrat.
 
 | Paramètre | Options | Statut |
 |---|---|---|
-| `scoringMode` | `CONTRACT_ONLY` / `POINTS_MADE_PLUS_CONTRACT` | ✅ les deux |
+| `scoringMode` | `CONTRACT_POINTS` (points au contrat) / `CONTRACT_AND_POINTS_MADE` (contrat et points faits) | ✅ les deux ; défaut ❓ |
 | `coincheMultiplier` | × 2 | ✅ |
 | `surcoincheMultiplier` | × 3 | ✅ |
 | `capotValue` | 250 | ✅ |
@@ -255,7 +266,7 @@ coinche multiplie, comme pour n'importe quel autre contrat.
 
 | Paramètre | Options | Statut |
 |---|---|---|
-| `targetScore` | libre ; usage : **1000 en mode A**, **2000 en mode B** ; certains jouent en 500 ou en 5000 | ✅ paramètre, défaut selon le mode |
+| `targetScore` | libre ; usage : **1000 en points au contrat**, **2000 en contrat et points faits** ; certains jouent en 500 ou en 5000 | ✅ paramètre, défaut selon le mode |
 | départage | si les deux équipes dépassent le score cible sur la même donne : **celle qui va le plus loin gagne** | ✅ |
 | égalité exacte au-delà du score cible | on joue une donne de plus | ✅ quasi impossible (dernière donne non arrondie), mais le moteur doit le traiter |
 
@@ -268,10 +279,10 @@ surtout quand une équipe a beaucoup de retard (voir `cadrage.md` §8).
 
 Exemple donné par l'auteur :
 
-- **Mode A** : la chute coûte peu. Contrer un 120 adverse par un 130 qu'on rate ne coûte
+- **Mode « points au contrat »** : la chute coûte peu. Contrer un 120 adverse par un 130 qu'on rate ne coûte
   que 40 points de plus que laisser l'adversaire faire son 120. L'espérance pousse vers
   **les gros contrats, même peu probables**.
-- **Mode B** : la chute coûte 160 + contrat. Le même pari coûte beaucoup plus cher.
+- **Mode « contrat et points faits »** : la chute coûte 160 + contrat. Le même pari coûte beaucoup plus cher.
   L'espérance pousse vers **la prudence** : on n'y va que si la probabilité de réussite
   est en notre faveur.
 
@@ -299,11 +310,13 @@ les plis qu'il ne peut de toute façon pas faire), puis la reprend pour le derni
   séquences.
 - Joueurs à règles : comportement à coder explicitement, sinon ils seront facilement exploitables.
 
-### L'obligation de pisser change la valeur des mains
+### L'obligation de sous-couper change la valeur des mains
 
-Explication de l'auteur (reprise au plus près de ses mots) :
+Explication de l'auteur (reprise au plus près de ses mots ; il parlait alors d'« obligation de
+pisser » pour ce qu'il appelle désormais l'obligation de sous-couper, « pisser » voulant dire
+se défausser) :
 
-> Sans obligation de pisser, une Dame troisième d'atout est forte. Avec obligation de pisser,
+> Sans obligation de sous-couper, une Dame troisième d'atout est forte. Avec obligation de sous-couper,
 > elle ne l'est généralement pas. Quand il reste un atout adverse et que j'ai le plus gros,
 > plutôt que de tirer tous les atouts, je peux garder le mien : au moment où je coupe,
 > la probabilité que l'adversaire soit obligé de sous-couper, et que je récupère son atout
@@ -372,18 +385,18 @@ lui-même (belote « imprenable » dans une section, « prenable » dans une aut
 | Valeurs des cartes, 152 + 10 de der | ✅ confirmé | Toutes les sources |
 | Arrondi 0-4 vers le bas, 5-9 vers le haut | ✅ confirmé | Wikipédia, FFBelote |
 | Réussite sur points bruts, sans besoin de faire plus que l'adversaire | ✅ confirmé | Wikipédia, FFBelote (« 89 contre un 90 chute ») |
-| Mode B : chute = 160 + C + belote, quelle que soit l'équipe qui l'a | ✅ confirmé | Wikipédia (ex. 90 + 160 + 20 = 270) ; la FFBelote se contredit |
-| Capot mode B : 500 annoncé, 410 chuté, 250 + C non annoncé | ✅ confirmé | Wikipédia, FFBelote |
-| Capot mode A : 250 pour l'une ou l'autre équipe, 500 coinché | ✅ confirmé | Wikipédia |
+| Contrat et points faits : chute = 160 + C + belote, quelle que soit l'équipe qui l'a | ✅ confirmé | Wikipédia (ex. 90 + 160 + 20 = 270) ; la FFBelote se contredit |
+| Capot en contrat et points faits : 500 annoncé, 410 chuté, 250 + C non annoncé | ✅ confirmé | Wikipédia, FFBelote |
+| Capot en points au contrat : 250 pour l'une ou l'autre équipe, 500 coinché | ✅ confirmé | Wikipédia |
 | La coinche arrête les enchères | ✅ confirmé | Wikipédia (« fige l'enchère, sauf surcoinche ») ; pagat |
 | Monter à l'atout, même sur le partenaire ; partenaire maître = défausse libre | ✅ confirmé | Wikipédia, pagat |
-| Pisser : obligatoire ou non | ✅ variante réelle | pagat : obligatoire (sauf « dans le Sud ») ; FFBelote : non obligatoire |
+| Sous-couper : obligatoire ou non | ✅ variante réelle | pagat : obligatoire (sauf « dans le Sud ») ; FFBelote : non obligatoire |
 | Sans-atout : As à 19, pas de belote | ✅ confirmé | pagat, FFBelote |
 | Tout-atout : V 14, 9 9, A 6, 10 5, R 3, D 1 | ✅ existe | pagat. La FFBelote utilise un autre système (valeurs d'atout normales, total 258 ramené à 162 par un coefficient) |
 | Tout-atout sans belote | ✅ confirmé | FFBelote |
 | Enchères de 80 à 160 | ✅ confirmé | Wikipédia ; la FFBelote va jusqu'à 650 (avec combinaisons) |
-| Mode A : chute = **160** pour la défense | ⚠️ **diverge** | Wikipédia : la défense marque **C** (la valeur du contrat) |
-| Mode A : belote de la défense toujours + 20 | ⚠️ **diverge** | Wikipédia : en points annoncés, la belote n'est **jamais** ajoutée au score |
+| Points au contrat : chute = **160** pour la défense | ⚠️ **diverge** | Wikipédia : la défense marque **C** (la valeur du contrat) |
+| Points au contrat : belote de la défense toujours + 20 | ⚠️ **diverge** | Wikipédia : en points annoncés, la belote n'est **jamais** ajoutée au score |
 | Coinche : seul le contrat est multiplié ; surcoinche × 3 | ⚠️ **variante** | pagat : contrat seul × 2 puis × 4 (× 3 cité en variante) ; Wikipédia : tous les points × 2 / × 4 ; FFBelote : (160 + C) × 2 |
 | Donne finale non arrondie | ❔ non trouvé | Aucune source consultée ne le mentionne : règle de l'auteur, non vérifiable |
 | Score cible 1000 (A) / 2000 (B) | ✅ usage variable | pagat : 2000 ; Wikipédia : « généralement 3000 » |

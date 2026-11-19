@@ -46,7 +46,8 @@ commerciale, avec des joueurs IA de **très haut niveau**.
 | **Appel direct** | Je défausse la couleur de mon As |
 | **Appel indirect** | Je défausse une couleur où je n'ai pas l'As |
 | **Appel en cycle** | Chaque couleur défaussée désigne l'As d'une autre couleur |
-| **Pisser** (ou sous-couper) | Jouer un atout inférieur quand un adversaire a coupé et qu'on ne peut pas surcouper ; obligatoire ou non selon la variante |
+| **Pisser** | Se défausser d'une autre couleur sans couper : toujours permis sans atout ou quand le partenaire est maître ; quand un adversaire a coupé plus haut, permis seulement en option |
+| **Sous-couper** | Jouer un atout inférieur quand un adversaire a coupé et qu'on ne peut pas surcouper ; obligatoire par défaut |
 | **Dame troisième** | Dame d'atout accompagnée de deux autres atouts |
 | **Coinche à la volée** | Variante où un adversaire peut coincher à tout moment, pas seulement à son tour |
 
@@ -230,7 +231,7 @@ Joueur
    jamais spontanément une défausse d'appel. Les appels doivent être **imposés par la
    convention** (on ne choisit qu'entre les défausses conformes). Dans l'autre sens, les
    défausses du partenaire alimentent l'inférence.
-6. **La fonction objectif est un paramètre** : le décompte (mode A ou B) change la prise
+6. **La fonction objectif est un paramètre** : le décompte (points au contrat, ou contrat et points faits) change la prise
    de risque optimale (voir `regles.md` §10).
 
 ## 6. Mesure de la force
@@ -318,16 +319,16 @@ s'ils échouent, on corrige l'évaluation ou l'inférence, on n'ajoute pas une r
 - Interprétation attendue (moi) : 130 n'implique **pas** trois As.
 - Nature : jugement (côté décision) + convention (côté interprétation).
 
-### Scénario 4 : garder l'atout maître quand pisser est obligatoire
+### Scénario 4 : garder l'atout maître quand sous-couper est obligatoire
 
 - Règles : `mustUnderTrump` = oui, puis la même position avec `mustUnderTrump` = non.
 - Situation : il reste un seul atout adverse, je détiens le plus gros atout, et j'ai à peu
   près le même nombre d'atouts que l'adversaire (❓ main précise à compléter).
-- Décision attendue (pisser obligatoire) : **ne pas** tirer le dernier atout ; garder le
+- Décision attendue (sous-couper obligatoire) : **ne pas** tirer le dernier atout ; garder le
   mien. Quand je couperai, l'adversaire risque fort de devoir sous-couper, et je récupérerai
   son atout sans dépenser de tour.
-- Décision attendue (pisser non obligatoire) : ❓ à préciser (vraisemblablement tirer
-  l'atout, puisque l'adversaire pourra défausser au lieu de sous-couper).
+- Décision attendue (option « pisser » autorisée) : ❓ à préciser (vraisemblablement tirer
+  l'atout, puisque l'adversaire pourra pisser au lieu de sous-couper).
 - Nature : jugement. Même position, règle différente, décision différente : la recherche doit
   le trouver seule, à partir des coups légaux.
 

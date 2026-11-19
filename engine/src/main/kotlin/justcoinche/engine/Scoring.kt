@@ -37,14 +37,14 @@ fun scoreDeal(contract: Contract, outcome: PlayOutcome, rules: Rules, round: Boo
         outcome.pointsMade[attack] >= contract.value
     }
     val (attackScore, defenceScore) = when (rules.scoringMode) {
-        ScoringMode.CONTRACT_ONLY -> contractOnly(contract, outcome, made)
-        ScoringMode.POINTS_MADE_PLUS_CONTRACT -> pointsMadePlusContract(contract, outcome, made, rules, round)
+        ScoringMode.CONTRACT_POINTS -> contractPoints(contract, outcome, made)
+        ScoringMode.CONTRACT_AND_POINTS_MADE -> contractAndPointsMade(contract, outcome, made, rules, round)
     }
     return TeamPoints.of(attack, attackScore, defenceScore)
 }
 
-/** Mode A, "points au contrat". Returns (attack, defence). */
-private fun contractOnly(contract: Contract, outcome: PlayOutcome, made: Boolean): Pair<Int, Int> {
+/** "Points au contrat": only the contract scores. Returns (attack, defence). */
+private fun contractPoints(contract: Contract, outcome: PlayOutcome, made: Boolean): Pair<Int, Int> {
     val stake = contract.coinche.multiplier * contract.value
     // The declarer's belote only helps make the contract; the defence's always scores.
     val defenceBelote = beloteOf(contract.declarer.team.opponent, outcome)
@@ -56,8 +56,8 @@ private fun contractOnly(contract: Contract, outcome: PlayOutcome, made: Boolean
     }
 }
 
-/** Mode B, "points faits + contrat". Returns (attack, defence). */
-private fun pointsMadePlusContract(
+/** "Contrat et points faits": the points made score on top of the contract. Returns (attack, defence). */
+private fun contractAndPointsMade(
     contract: Contract,
     outcome: PlayOutcome,
     made: Boolean,
