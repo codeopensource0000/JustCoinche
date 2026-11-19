@@ -266,8 +266,24 @@ Principes proposés :
 - **Format versionné** dès le départ, pour que les historiques restent lisibles quand le
   moteur évolue.
 
-❓ À trancher au moment de l'implémenter (fin de l'étape 1) : format texte compact (une ligne
-par donne, lisible et facile à parcourir, compressible) ou binaire. Proposition : texte compact.
+✅ Format retenu : **texte**, une ligne par donne, version `v1` (implémenté dans
+`engine/.../History.kt`). Exemple, coupé ici sur plusieurs lignes :
+
+```
+v1 | donneur O | regles pts-contrat,sous-couper,coinche-tour,sa,ta,belote-perdue
+   | donne ffffaaaa55550000 | encheres S:80T E:- N:- O:-
+   | jeu S:7T 7K 7C 7P / S:8T 8K 8C 8P / ... | score NS 80 EO 0
+```
+
+- Cartes en lettres : rangs `7 8 9 10 V D R A`, couleurs `P` pique, `C` cœur, `K` carreau,
+  `T` trèfle ; joueurs `S E N O`.
+- Les mains ne sont pas écrites en clair : les plis montrent déjà chaque carte avec son joueur ;
+  la donne est gardée sous forme de code 64 bits (16 caractères), utile aussi pour les redistributions.
+- Relire une ligne rejoue la donne dans le moteur : toute annonce ou carte illégale, tout
+  entameur faux, tout score différent est refusé.
+- Environ 289 caractères par donne, soit de l'ordre de 300 Mo par million de donnes avant
+  compression.
+- À venir : la marque de la donne finale (non arrondie) quand la partie sera codée.
 
 ## 7. Scénarios (situations de référence)
 
