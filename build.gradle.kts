@@ -2,6 +2,8 @@ plugins {
     // Gives the root project a `check` task, so that `./gradlew check` runs
     // static analysis alongside every module's tests.
     base
+    alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.detekt)
 }
@@ -14,7 +16,9 @@ tasks.named("check") {
 // catches, dead code. It fails the build on any finding; there is no baseline
 // yet because there is no debt yet, and the point is to keep it that way.
 detekt {
-    source.setFrom(files("engine/src/main/kotlin", "engine/src/test/kotlin"))
+    source.setFrom(
+        files("engine/src/main/kotlin", "engine/src/test/kotlin", "app/src/main/kotlin", "app/src/test/kotlin"),
+    )
     config.setFrom(files("config/detekt.yml"))
     buildUponDefaultConfig = true
 }

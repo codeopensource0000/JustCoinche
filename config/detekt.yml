@@ -18,9 +18,14 @@ style:
     excludes: ['**/test/**']
     # In `SURCOINCHED(3)` the enum entry already names the number.
     ignoreEnums: true
+    # A number given a name in a property (`val RED_SUIT = Color(0xFFC62828)`)
+    # is exactly the remedy the rule asks for, even when it cannot be `const`.
+    ignorePropertyDeclaration: true
 
 naming:
   FunctionNaming:
     # Test functions are `written as sentences in backticks`, which is the
     # idiomatic Kotlin way to name them.
     excludes: ['**/test/**']
+    # Composable functions are named like components, in PascalCase.
+    ignoreAnnotated: ['Composable']
