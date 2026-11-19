@@ -94,7 +94,7 @@ Total : 4 × (14 + 9 + 6 + 5 + 3 + 1) = 152. (Un autre barème circule, V 13 / D
 - **Capot belote** : annonce à **270**, au-dessus du capot ; on peut donc l'annoncer pendant le
   tour à blanc qui suit un capot. On peut l'annoncer sans détenir la belote, mais un capot belote
   sans la belote est une **chute**. Il vaut toujours 270, plus les points faits en mode
-  « contrat et points faits ». ✅ Pas encore implémenté : voir les ❓ du §8.
+  « contrat et points faits ». ✅ Décompte détaillé au §8.
 - Si les quatre joueurs passent d'entrée : les cartes sont redistribuées par le donneur suivant.
 
 ### Coinche et surcoinche
@@ -232,15 +232,20 @@ ces 182 points.
 Règle générale : le contrat d'un capot annoncé vaut 250, et c'est **le contrat** que la
 coinche multiplie, comme pour n'importe quel autre contrat.
 
-### Capot belote (270) : questions restantes avant implémentation
+### Capot belote (270) ✅
 
-- ❓ « Sans la belote, c'est une chute » : la belote doit-elle être dans la main **du preneur**,
-  ou suffit-il qu'elle soit dans son équipe (chez son partenaire) ?
-- ❓ En contrat et points faits, réussi : 270 + **250** (les points d'un capot) = 520, ou
-  270 + 182 (les points réellement faits, belote comprise) ? Et la belote est-elle comptée en plus,
-  ou déjà incluse dans les 270 ?
-- ❓ Chuté : la défense marque-t-elle 270 + 160 en contrat et points faits (270 en points au
-  contrat) ? La coinche multiplie-t-elle les 270 comme pour les autres contrats ?
+- Réussi si l'équipe du preneur fait **tous les plis** et **détient la belote**, peu importe dans
+  quelle main. Sans la belote, c'est une chute, même avec tous les plis.
+- Sa valeur de 270 = 250 + 20 de belote. La belote n'est donc pas comptée une seconde fois.
+
+| Issue | Points au contrat | Contrat et points faits |
+|---|---|---|
+| Réussi | preneur **270** | preneur 250 + 250 + 20 = **520** |
+| Chuté | défense **270** | défense 270 + 160 = **430** |
+
+Coinche : comme pour tout contrat, elle multiplie la valeur du contrat, mais **jamais la belote**.
+Choix fait à partir de cette règle générale, ❓ à confirmer : un capot belote coinché réussi en
+contrat et points faits vaut 2 × 250 + 20 + 250 = **770** (et non 2 × 270 + 250 = 790).
 
 ### Arrondi des points faits (mode « contrat et points faits »)
 

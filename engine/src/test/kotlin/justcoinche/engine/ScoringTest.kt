@@ -25,6 +25,13 @@ class ScoringTest {
     private fun capot(coinche: CoincheLevel = NONE) =
         Contract(Seat.NORTH, hearts, Contract.CAPOT_VALUE, isCapot = true, coinche = coinche)
 
+    /** North-South win every trick and hold the belote: 162 + 20 points. */
+    private val everyTrickWithBelote =
+        PlayOutcome(TeamPoints(182, 0), beloteTeam = NORTH_SOUTH, capotTeam = NORTH_SOUTH)
+
+    private fun capotBelote(coinche: CoincheLevel = NONE) =
+        Contract(Seat.NORTH, hearts, Contract.CAPOT_BELOTE_VALUE, isCapot = true, coinche = coinche, capotBelote = true)
+
     private fun outcome(attack: Int, defence: Int, belote: Team? = null, capot: Team? = null) =
         PlayOutcome(TeamPoints(attack, defence), belote, capot)
 
@@ -104,6 +111,31 @@ class ScoringTest {
         assertEquals(TeamPoints(420, 0), score(bid(100, SURCOINCHED), outcome(120, 42), contractAndPointsMade))
     }
 
+    @Test
+    fun `contract and points made - a capot belote scores 250 + 250 + 20, or gives 270 + 160 when it fails`() {
+        // Made: every trick and the belote, held by either hand of the team.
+        assertEquals(TeamPoints(520, 0), score(capotBelote(), everyTrickWithBelote, contractAndPointsMade))
+        // Failed by losing a trick: the belote is part of the 270, not given again.
+        val lostATrick = outcome(170, 12, belote = NORTH_SOUTH)
+        assertEquals(TeamPoints(0, 430), score(capotBelote(), lostATrick, contractAndPointsMade))
+    }
+
+    @Test
+    fun `a capot belote without the belote fails, even with every trick`() {
+        val everyTrickNoBelote = outcome(162, 0, capot = NORTH_SOUTH)
+        assertEquals(TeamPoints(0, 430), score(capotBelote(), everyTrickNoBelote, contractAndPointsMade))
+        assertEquals(TeamPoints(0, 270), score(capotBelote(), everyTrickNoBelote, contractPoints))
+    }
+
+    @Test
+    fun `a coinched capot belote doubles its 250 but never the belote`() {
+        // 2 x 250 + 20 + 250 = 770, not 2 x 270 + 250 = 790.
+        assertEquals(
+            TeamPoints(770, 0),
+            score(capotBelote(COINCHED), everyTrickWithBelote, contractAndPointsMade),
+        )
+    }
+
     // ---- "Points au contrat" ----
 
     @Test
@@ -129,6 +161,12 @@ class ScoringTest {
         assertEquals(TeamPoints(250, 0), score(capot(), outcome(162, 0, capot = NORTH_SOUTH), contractPoints))
         assertEquals(TeamPoints(0, 250), score(capot(), outcome(150, 12), contractPoints))
         assertEquals(TeamPoints(0, 500), score(capot(COINCHED), outcome(150, 12), contractPoints))
+    }
+
+    @Test
+    fun `contract points - a capot belote is worth 270 either way`() {
+        assertEquals(TeamPoints(270, 0), score(capotBelote(), everyTrickWithBelote, contractPoints))
+        assertEquals(TeamPoints(0, 270), score(capotBelote(), outcome(170, 12, belote = NORTH_SOUTH), contractPoints))
     }
 
     @Test

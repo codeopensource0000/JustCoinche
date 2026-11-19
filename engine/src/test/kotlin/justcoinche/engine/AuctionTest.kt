@@ -84,12 +84,25 @@ class AuctionTest {
     }
 
     @Test
-    fun `a capot outbids any announce and nothing outbids a capot`() {
+    fun `a capot outbids any announce, and only a capot belote outbids a capot`() {
         val afterAnnounce = auction(announce(180))
         assertTrue(Bid.Capot(spades) in afterAnnounce.legalBids(NORTH))
 
-        val afterCapot = auction(Bid.Capot(hearts))
-        assertEquals(listOf(Pass, Coinche), afterCapot.legalBids(NORTH))
+        // The "tour à blanc" after a capot: pass, coinche, or a capot belote.
+        val afterCapot = auction(Bid.Capot(hearts)).legalBids(NORTH)
+        assertEquals(setOf(Pass, Coinche), afterCapot.filter { it !is Bid.CapotBelote }.toSet())
+        assertTrue(Bid.CapotBelote(spades) in afterCapot)
+    }
+
+    @Test
+    fun `nothing outbids a capot belote, a contract worth 270`() {
+        val afterCapotBelote = auction(Bid.Capot(hearts), Bid.CapotBelote(spades))
+        assertEquals(listOf(Pass, Coinche), afterCapotBelote.legalBids(WEST))
+        val contract = contractOf(afterCapotBelote.call(WEST, Pass).call(SOUTH, Pass).call(EAST, Pass))
+        assertEquals(
+            Contract(NORTH, spades, value = 270, isCapot = true, coinche = CoincheLevel.NONE, capotBelote = true),
+            contract,
+        )
     }
 
     @Test
@@ -180,7 +193,9 @@ class AuctionTest {
                 auction = auction.call(seat, bid)
                 assertTrue(auction.calls.size < 100, "the auction should have ended")
             }
-            val lastBid = auction.calls.lastOrNull { it.bid is Bid.Announce || it.bid is Bid.Capot }
+            val lastBid = auction.calls.lastOrNull {
+                it.bid is Bid.Announce || it.bid is Bid.Capot || it.bid is Bid.CapotBelote
+            }
             when (val result = auction.result) {
                 AuctionResult.Redeal -> assertNull(lastBid)
                 is AuctionResult.Contracted -> assertEquals(checkNotNull(lastBid).seat, result.contract.declarer)

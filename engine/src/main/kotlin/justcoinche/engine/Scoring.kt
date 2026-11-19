@@ -32,7 +32,8 @@ data class PlayOutcome(
 fun scoreDeal(contract: Contract, outcome: PlayOutcome, rules: Rules, round: Boolean = true): TeamPoints {
     val attack = contract.declarer.team
     val made = if (contract.isCapot) {
-        outcome.capotTeam == attack
+        // A capot belote also needs the belote, in either hand of the team.
+        outcome.capotTeam == attack && (!contract.capotBelote || outcome.beloteTeam == attack)
     } else {
         outcome.pointsMade[attack] >= contract.value
     }
@@ -45,7 +46,7 @@ fun scoreDeal(contract: Contract, outcome: PlayOutcome, rules: Rules, round: Boo
 
 /** "Points au contrat": only the contract scores. Returns (attack, defence). */
 private fun contractPoints(contract: Contract, outcome: PlayOutcome, made: Boolean): Pair<Int, Int> {
-    val stake = contract.coinche.multiplier * contract.value
+    val stake = stakeOf(contract)
     // The declarer's belote only helps make the contract; the defence's always scores.
     val defenceBelote = beloteOf(contract.declarer.team.opponent, outcome)
     return when {
@@ -66,8 +67,9 @@ private fun contractAndPointsMade(
 ): Pair<Int, Int> {
     val attack = contract.declarer.team
     val defence = attack.opponent
-    val stake = contract.coinche.multiplier * contract.value
-    val attackBelote = beloteOf(attack, outcome)
+    val stake = stakeOf(contract)
+    // A capot belote's value already holds the belote: it is not counted again.
+    val attackBelote = if (contract.capotBelote) 0 else beloteOf(attack, outcome)
     val defenceBelote = beloteOf(defence, outcome)
     fun written(points: Int) = if (round) roundToTen(points) else points
 
@@ -90,6 +92,15 @@ private fun contractAndPointsMade(
         defenceBelote
     }
     return attackScore to defenceScore
+}
+
+/**
+ * What the contract itself is worth: its value times the coinche multiplier.
+ * The belote is never multiplied, so a capot belote doubles its 250, not its 270.
+ */
+private fun stakeOf(contract: Contract): Int {
+    val belote = if (contract.capotBelote) CardPlay.BELOTE_BONUS else 0
+    return contract.coinche.multiplier * (contract.value - belote) + belote
 }
 
 private fun beloteOf(team: Team, outcome: PlayOutcome): Int =

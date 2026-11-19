@@ -43,7 +43,7 @@ data class Auction private constructor(
         val calls = calls + Call(seat, bid)
         return when (bid) {
             Bid.Pass -> afterPass(calls)
-            is Bid.Announce, is Bid.Capot ->
+            is Bid.Announce, is Bid.Capot, is Bid.CapotBelote ->
                 copy(calls = calls, toSpeak = seat.next, highest = Call(seat, bid), passesInRow = 0)
             Bid.Coinche ->
                 copy(calls = calls, toSpeak = seat.next, coinche = CoincheLevel.COINCHED, answersLeft = 2)
@@ -58,12 +58,19 @@ data class Auction private constructor(
         if (canCoinche(seat)) add(Bid.Coinche)
     }
 
-    /** Every announce and capot that outbids [top]. Nothing outbids a capot. */
-    private fun announcesAbove(top: Bid?): List<Bid> {
-        if (top is Bid.Capot) return emptyList()
-        val lowest = if (top is Bid.Announce) top.value + Bid.STEP else Bid.MIN_VALUE
-        return allowedTypes().flatMap { type ->
-            (lowest..Bid.MAX_VALUE step Bid.STEP).map { Bid.Announce(it, type) } + Bid.Capot(type)
+    /**
+     * Every bid that outbids [top]: announces, then capot, then capot belote.
+     * Over a capot only a capot belote may be bid, and nothing outbids a capot belote.
+     */
+    private fun announcesAbove(top: Bid?): List<Bid> = when (top) {
+        is Bid.CapotBelote -> emptyList()
+        is Bid.Capot -> allowedTypes().map { Bid.CapotBelote(it) }
+        else -> {
+            val lowest = if (top is Bid.Announce) top.value + Bid.STEP else Bid.MIN_VALUE
+            allowedTypes().flatMap { type ->
+                (lowest..Bid.MAX_VALUE step Bid.STEP).map { Bid.Announce(it, type) } +
+                    Bid.Capot(type) + Bid.CapotBelote(type)
+            }
         }
     }
 
@@ -102,6 +109,9 @@ data class Auction private constructor(
                 Contract(declarer = top.seat, type = bid.type, value = bid.value, isCapot = false, coinche = level)
             is Bid.Capot ->
                 Contract(top.seat, bid.type, value = Contract.CAPOT_VALUE, isCapot = true, coinche = level)
+            is Bid.CapotBelote -> Contract(
+                top.seat, bid.type, Contract.CAPOT_BELOTE_VALUE, isCapot = true, coinche = level, capotBelote = true,
+            )
             else -> error("Only an announce or a capot can be the highest bid, got $bid")
         }
         return AuctionResult.Contracted(contract)

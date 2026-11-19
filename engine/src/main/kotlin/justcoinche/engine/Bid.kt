@@ -12,8 +12,14 @@ sealed interface Bid {
         }
     }
 
-    /** A contract to win all eight tricks under [type]. Nothing can be bid above it. */
+    /** A contract to win all eight tricks under [type]. Only a [CapotBelote] can be bid above it. */
     data class Capot(val type: ContractType) : Bid
+
+    /**
+     * A capot that also claims the belote, worth 270, the highest bid of all.
+     * It may be bid without holding the belote, but it then fails.
+     */
+    data class CapotBelote(val type: ContractType) : Bid
 
     /** An opponent of the highest bidder bets that the contract will fail. It ends the bidding. */
     data object Coinche : Bid

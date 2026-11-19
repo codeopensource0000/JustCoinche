@@ -12,13 +12,16 @@ data class Contract(
     /** The player who made the winning bid. */
     val declarer: Seat,
     val type: ContractType,
-    /** The points to reach: the bid's value, or [CAPOT_VALUE] for a capot. */
+    /** The bid's value: 80 to 180, [CAPOT_VALUE] for a capot, [CAPOT_BELOTE_VALUE] for a capot belote. */
     val value: Int,
     val isCapot: Boolean,
     val coinche: CoincheLevel,
+    /** A capot that must also hold the belote; its value includes the belote's 20 points. */
+    val capotBelote: Boolean = false,
 ) {
     companion object {
         const val CAPOT_VALUE = 250
+        const val CAPOT_BELOTE_VALUE = 270
     }
 }
 
