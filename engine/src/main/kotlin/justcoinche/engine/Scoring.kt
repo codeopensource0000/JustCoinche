@@ -5,6 +5,9 @@ data class TeamPoints(val northSouth: Int, val eastWest: Int) {
 
     operator fun get(team: Team): Int = if (team == Team.NORTH_SOUTH) northSouth else eastWest
 
+    operator fun plus(other: TeamPoints): TeamPoints =
+        TeamPoints(northSouth + other.northSouth, eastWest + other.eastWest)
+
     companion object {
         /** Builds the pair from one team's points and its opponents'. */
         fun of(team: Team, points: Int, opponentPoints: Int): TeamPoints =

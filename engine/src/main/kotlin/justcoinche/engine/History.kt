@@ -24,15 +24,17 @@ object History {
     private const val SEPARATOR = " | "
     private const val TRICK_SEPARATOR = " / "
     private const val NOTHING = "-"
+    private const val RAW = " brut"
     private const val FIELD_COUNT = 7
 
-    fun write(round: Round): String {
+    /** [rounded] is false for the final deal of a game: its score is then written raw, marked "brut". */
+    fun write(round: Round, rounded: Boolean = true): String {
         require(round.phase == Round.Phase.OVER || round.phase == Round.Phase.REDEAL) { "The deal is not finished" }
         val tricks = round.cardPlay?.tricks?.joinToString(TRICK_SEPARATOR) { trick ->
             "${trick.leader.letter}:" + trick.cards.joinToString(" ") { it.notation }
         }
         val score = if (round.phase == Round.Phase.OVER) {
-            round.score().let { "NS ${it.northSouth} EO ${it.eastWest}" }
+            round.score(rounded).let { "NS ${it.northSouth} EO ${it.eastWest}" + if (rounded) "" else RAW }
         } else {
             NOTHING
         }
@@ -65,7 +67,10 @@ object History {
         round = replayTricks(round, field("jeu"))
 
         val recorded = field("score")
-        require(write(round).endsWith("score $recorded")) { "The recorded score '$recorded' does not match the replay" }
+        val rounded = !recorded.endsWith(RAW)
+        require(write(round, rounded).endsWith("score $recorded")) {
+            "The recorded score '$recorded' does not match the replay"
+        }
         return round
     }
 
@@ -87,6 +92,7 @@ object History {
         if (rules.allowNoTrump) "sa" else "sans-sa",
         if (rules.allowAllTrump) "ta" else "sans-ta",
         if (rules.beloteKeptOnFailure) "belote-gardee" else "belote-perdue",
+        "$TARGET${rules.targetScore}",
     ).joinToString(",")
 
     private fun parseRules(text: String): Rules {
@@ -111,9 +117,12 @@ object History {
             allowNoTrump = flag("sa", "sans-sa"),
             allowAllTrump = flag("ta", "sans-ta"),
             beloteKeptOnFailure = flag("belote-gardee", "belote-perdue"),
+            targetScore = tokens.firstOrNull { it.startsWith(TARGET) }?.removePrefix(TARGET)?.toIntOrNull()
+                ?: throw IllegalArgumentException("Rules '$text' give no target score"),
         )
     }
 
+    private const val TARGET = "cible-"
     private const val HEX = 16
     private const val HEX_DIGITS = 16
 }

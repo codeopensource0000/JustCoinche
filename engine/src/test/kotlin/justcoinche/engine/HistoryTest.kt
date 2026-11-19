@@ -47,7 +47,7 @@ class HistoryTest {
         val tricks = listOf("7", "8", "9", "10", "V", "D", "R", "A")
             .joinToString(" / ") { "S:${it}T ${it}K ${it}C ${it}P" }
         assertEquals(
-            "v1 | donneur O | regles pts-contrat,sous-couper,coinche-tour,sa,ta,belote-perdue" +
+            "v1 | donneur O | regles pts-contrat,sous-couper,coinche-tour,sa,ta,belote-perdue,cible-1000" +
                 " | donne ffffaaaa55550000 | encheres S:80T E:- N:- O:- | jeu $tricks | score NS 80 EO 0",
             History.write(round),
         )

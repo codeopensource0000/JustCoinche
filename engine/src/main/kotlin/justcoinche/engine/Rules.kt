@@ -41,4 +41,15 @@ data class Rules(
      * declarer's belote never scores, it only helps make the contract.
      */
     val beloteKeptOnFailure: Boolean = false,
-)
+    /**
+     * The score that ends a game. A default may refer to an earlier parameter:
+     * 1000 when only the contract is scored, 2000 when points made are added.
+     */
+    val targetScore: Int =
+        if (scoringMode == ScoringMode.CONTRACT_POINTS) CONTRACT_POINTS_TARGET else POINTS_MADE_TARGET,
+) {
+    companion object {
+        const val CONTRACT_POINTS_TARGET = 1000
+        const val POINTS_MADE_TARGET = 2000
+    }
+}

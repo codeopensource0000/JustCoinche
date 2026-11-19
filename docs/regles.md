@@ -272,6 +272,17 @@ contrat et points faits vaut 2 × 250 + 20 + 250 = **770** (et non 2 × 270 + 25
 | Paramètre | Options | Statut |
 |---|---|---|
 | `targetScore` | libre ; usage : **1000 en points au contrat**, **2000 en contrat et points faits** ; certains jouent en 500 ou en 5000 | ✅ paramètre, défaut selon le mode |
+
+Implémenté (`Game`) ✅ :
+- le donneur tourne après chaque donne, redistribution comprise ;
+- une donne est **finale** si, comptée **sans arrondi**, elle fait atteindre le score cible à une
+  équipe ; elle est alors inscrite brute ;
+- la partie se termine dès qu'une équipe **atteint ou dépasse** le score cible (❓ à confirmer :
+  atteindre exactement 1000 suffit-il ?), l'équipe qui va le plus loin gagne ; égalité exacte :
+  on joue une donne de plus (elle est forcément finale, donc brute) ;
+- cas limite non tranché, sans effet en points au contrat (aucun arrondi) : en contrat et points
+  faits, une donne qui n'atteint pas la cible sans arrondi mais l'atteindrait arrondie est inscrite
+  arrondie et termine la partie.
 | départage | si les deux équipes dépassent le score cible sur la même donne : **celle qui va le plus loin gagne** | ✅ |
 | égalité exacte au-delà du score cible | on joue une donne de plus | ✅ quasi impossible (dernière donne non arrondie), mais le moteur doit le traiter |
 

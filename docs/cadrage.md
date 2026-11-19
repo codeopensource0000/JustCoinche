@@ -283,7 +283,8 @@ v1 | donneur O | regles pts-contrat,sous-couper,coinche-tour,sa,ta,belote-perdue
   entameur faux, tout score différent est refusé.
 - Environ 289 caractères par donne, soit de l'ordre de 300 Mo par million de donnes avant
   compression.
-- À venir : la marque de la donne finale (non arrondie) quand la partie sera codée.
+- La donne finale d'une partie, comptée sans arrondi, porte la marque `brut` après son score
+  (`score NS 182 EO 0 brut`).
 
 ## 7. Scénarios (situations de référence)
 
