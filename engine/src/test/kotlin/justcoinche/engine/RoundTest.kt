@@ -7,6 +7,7 @@ import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -79,6 +80,16 @@ class RoundTest {
         val pointsMade = start(Rules(scoringMode = ScoringMode.CONTRACT_AND_POINTS_MADE))
             .bidding(Bid.Announce(80, clubs), Pass, Pass, Pass).playedOut(Random(1))
         assertEquals(TeamPoints(350, 0), pointsMade.score())
+    }
+
+    @Test
+    fun `a finished round tells whether the contract was made`() {
+        // South holds every club: made when South bids clubs, failed when East does.
+        val southBids = start().bidding(Bid.Announce(80, clubs), Pass, Pass, Pass).playedOut(Random(3))
+        assertTrue(southBids.isContractMade)
+        val eastBids = start().bidding(Pass, Bid.Announce(80, clubs), Pass, Pass, Pass).playedOut(Random(3))
+        assertFalse(eastBids.isContractMade)
+        assertFailsWith<IllegalStateException> { start().isContractMade }
     }
 
     @Test

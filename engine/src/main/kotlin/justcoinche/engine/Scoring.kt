@@ -34,17 +34,23 @@ data class PlayOutcome(
  */
 fun scoreDeal(contract: Contract, outcome: PlayOutcome, rules: Rules, round: Boolean = true): TeamPoints {
     val attack = contract.declarer.team
-    val made = if (contract.isCapot) {
-        // A capot belote also needs the belote, in either hand of the team.
-        outcome.capotTeam == attack && (!contract.capotBelote || outcome.beloteTeam == attack)
-    } else {
-        outcome.pointsMade[attack] >= contract.value
-    }
+    val made = isMade(contract, outcome)
     val (attackScore, defenceScore) = when (rules.scoringMode) {
         ScoringMode.CONTRACT_POINTS -> contractPoints(contract, outcome, made)
         ScoringMode.CONTRACT_AND_POINTS_MADE -> contractAndPointsMade(contract, outcome, made, rules, round)
     }
     return TeamPoints.of(attack, attackScore, defenceScore)
+}
+
+/** Whether the attacking team made its contract, always judged on raw points. */
+fun isMade(contract: Contract, outcome: PlayOutcome): Boolean {
+    val attack = contract.declarer.team
+    return if (contract.isCapot) {
+        // A capot belote also needs the belote, in either hand of the team.
+        outcome.capotTeam == attack && (!contract.capotBelote || outcome.beloteTeam == attack)
+    } else {
+        outcome.pointsMade[attack] >= contract.value
+    }
 }
 
 /** "Points au contrat": only the contract scores. Returns (attack, defence). */

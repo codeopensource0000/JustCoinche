@@ -43,6 +43,13 @@ class Round private constructor(
         return Round(dealer, deal, rules, auction, checkNotNull(cardPlay).play(card))
     }
 
+    /** Whether the attacking team made its contract, once the deal is over. */
+    val isContractMade: Boolean
+        get() {
+            check(phase == Phase.OVER) { "The deal is not over" }
+            return isMade(checkNotNull(contract), checkNotNull(cardPlay).outcome())
+        }
+
     /** The points each team scores. [round] is false for the final deal of a game. */
     fun score(round: Boolean = true): TeamPoints {
         check(phase == Phase.OVER) { "The deal is not over" }

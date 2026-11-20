@@ -1,8 +1,12 @@
 package justcoinche.app
 
+import justcoinche.engine.Bid
 import justcoinche.engine.Card
-import justcoinche.engine.CardSet
+import justcoinche.engine.CoincheLevel
+import justcoinche.engine.Contract
+import justcoinche.engine.ContractType
 import justcoinche.engine.Rank
+import justcoinche.engine.Seat
 import justcoinche.engine.Suit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -27,15 +31,14 @@ class CardLabelsTest {
     }
 
     @Test
-    fun `a hand is shown by suit, highest card first`() {
-        val hand = CardSet.of(
-            listOf(
-                Card.of(Rank.SEVEN, Suit.HEARTS),
-                Card.of(Rank.TEN, Suit.CLUBS),
-                Card.of(Rank.ACE, Suit.HEARTS),
-                Card.of(Rank.KING, Suit.CLUBS),
-            ),
-        )
-        assertEquals(listOf("10♣", "R♣", "A♥", "7♥"), sortedForDisplay(hand).map { it.label })
+    fun `bids, contracts and seats read in French`() {
+        assertEquals("Passe", Bid.Pass.label)
+        assertEquals("100 ♥", Bid.Announce(100, ContractType.SuitTrump(Suit.HEARTS)).label)
+        assertEquals("Capot SA", Bid.Capot(ContractType.NoTrump).label)
+        assertEquals("Capot belote TA", Bid.CapotBelote(ContractType.AllTrump).label)
+        val spades = ContractType.SuitTrump(Suit.SPADES)
+        val coinched = Contract(Seat.NORTH, spades, 90, isCapot = false, CoincheLevel.COINCHED)
+        assertEquals("90 ♠ coinché", coinched.label)
+        assertEquals("Ouest", Seat.WEST.label)
     }
 }
