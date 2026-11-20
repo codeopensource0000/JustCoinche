@@ -60,7 +60,7 @@ class GameTest {
     }
 
     @Test
-    fun `the game ends when a team reaches the target, the team that went furthest winning`() {
+    fun `the game ends when a team goes past the target, the team that went furthest winning`() {
         val game = Game.resume(Rules(), Seat.WEST, TeamPoints(950, 0)).southTakesAll()
         assertEquals(TeamPoints(1030, 0), game.scores)
         assertTrue(game.isOver)
@@ -73,10 +73,15 @@ class GameTest {
     }
 
     @Test
-    fun `reaching the target exactly ends the game`() {
+    fun `reaching the target exactly does not end the game`() {
         val game = Game.resume(Rules(), Seat.WEST, TeamPoints(920, 0)).southTakesAll()
         assertEquals(TeamPoints(1000, 0), game.scores)
-        assertTrue(game.isOver)
+        assertNull(game.winner)
+        assertFalse(game.isOver)
+        assertFalse(game.results.single().isFinal)
+
+        // One more point than the target is enough.
+        assertEquals(Team.NORTH_SOUTH, Game.resume(Rules(), Seat.WEST, TeamPoints(1001, 1000)).winner)
     }
 
     @Test
@@ -99,7 +104,7 @@ class GameTest {
             val game = playRandomGame(rules, random)
             assertTrue(game.isOver)
             val winner = checkNotNull(game.winner)
-            assertTrue(game.scores[winner] >= 300 && game.scores[winner] > game.scores[winner.opponent])
+            assertTrue(game.scores[winner] > 300 && game.scores[winner] > game.scores[winner.opponent])
 
             val scored = game.results.filter { it.score != null }
             val total = scored.fold(TeamPoints(0, 0)) { sum, result -> sum + checkNotNull(result.score) }

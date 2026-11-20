@@ -244,8 +244,8 @@ coinche multiplie, comme pour n'importe quel autre contrat.
 | Chuté | défense **270** | défense 270 + 160 = **430** |
 
 Coinche : comme pour tout contrat, elle multiplie la valeur du contrat, mais **jamais la belote**.
-Choix fait à partir de cette règle générale, ❓ à confirmer : un capot belote coinché réussi en
-contrat et points faits vaut 2 × 250 + 20 + 250 = **770** (et non 2 × 270 + 250 = 790).
+Un capot belote coinché réussi en contrat et points faits vaut donc 2 × 250 + 20 + 250 = **770**
+(et non 2 × 270 + 250 = 790) ✅.
 
 ### Arrondi des points faits (mode « contrat et points faits »)
 
@@ -275,14 +275,14 @@ contrat et points faits vaut 2 × 250 + 20 + 250 = **770** (et non 2 × 270 + 25
 
 Implémenté (`Game`) ✅ :
 - le donneur tourne après chaque donne, redistribution comprise ;
-- une donne est **finale** si, comptée **sans arrondi**, elle fait atteindre le score cible à une
+- une donne est **finale** si, comptée **sans arrondi**, elle fait dépasser le score cible à une
   équipe ; elle est alors inscrite brute ;
-- la partie se termine dès qu'une équipe **atteint ou dépasse** le score cible (❓ à confirmer :
-  atteindre exactement 1000 suffit-il ?), l'équipe qui va le plus loin gagne ; égalité exacte :
+- la partie se termine dès qu'une équipe **dépasse strictement** le score cible : à 1000 pile dans
+  une partie en 1000, on n'a pas gagné ✅. L'équipe qui va le plus loin gagne ; égalité exacte :
   on joue une donne de plus (elle est forcément finale, donc brute) ;
 - cas limite non tranché, sans effet en points au contrat (aucun arrondi) : en contrat et points
-  faits, une donne qui n'atteint pas la cible sans arrondi mais l'atteindrait arrondie est inscrite
-  arrondie et termine la partie.
+  faits, une donne qui ne dépasse pas la cible sans arrondi mais la dépasserait arrondie est
+  inscrite arrondie et termine la partie.
 | départage | si les deux équipes dépassent le score cible sur la même donne : **celle qui va le plus loin gagne** | ✅ |
 | égalité exacte au-delà du score cible | on joue une donne de plus | ✅ quasi impossible (dernière donne non arrondie), mais le moteur doit le traiter |
 

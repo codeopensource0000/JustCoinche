@@ -5,7 +5,7 @@ data class DealResult(
     val round: Round,
     /** The points scored, or null for a redeal. */
     val score: TeamPoints?,
-    /** The deal that took a team to the target: scored without rounding. */
+    /** The deal that took a team past the target: scored without rounding. */
     val isFinal: Boolean,
 ) {
     /** The deal's line in the game record. */
@@ -13,8 +13,8 @@ data class DealResult(
 }
 
 /**
- * A game: deals follow one another until a team reaches the target score
- * (docs/regles.md §9).
+ * A game: deals follow one another until a team goes past the target score
+ * (docs/regles.md §9). Reaching it exactly is not enough.
  *
  * The game never shuffles: whoever runs it supplies each deal with [deal].
  * The arena can then replay the same deals with the teams swapped, and the
@@ -34,13 +34,14 @@ data class Game private constructor(
 ) {
 
     /**
-     * The team that has won: once a team has reached the target, the one that
-     * went furthest. Null while the game goes on, including after an exact
-     * tie above the target, which calls for one more deal.
+     * The team that has won: once a team has gone past the target (strictly:
+     * 1000 exactly does not win a game played to 1000), the one that went
+     * furthest. Null while the game goes on, including after an exact tie
+     * above the target, which calls for one more deal.
      */
     val winner: Team?
         get() = when {
-            maxOf(scores.northSouth, scores.eastWest) < rules.targetScore -> null
+            maxOf(scores.northSouth, scores.eastWest) <= rules.targetScore -> null
             scores.northSouth == scores.eastWest -> null
             scores.northSouth > scores.eastWest -> Team.NORTH_SOUTH
             else -> Team.EAST_WEST
@@ -66,9 +67,9 @@ data class Game private constructor(
         Round.Phase.BIDDING, Round.Phase.PLAYING -> copy(currentRound = round)
         Round.Phase.REDEAL -> passDeal(DealResult(round, score = null, isFinal = false), scores)
         Round.Phase.OVER -> {
-            // The deal is final when, counted without rounding, it takes a team to the target.
+            // The deal is final when, counted without rounding, it takes a team past the target.
             val raw = round.score(round = false)
-            val isFinal = Team.entries.any { scores[it] + raw[it] >= rules.targetScore }
+            val isFinal = Team.entries.any { scores[it] + raw[it] > rules.targetScore }
             val score = if (isFinal) raw else round.score()
             passDeal(DealResult(round, score, isFinal), scores + score)
         }
