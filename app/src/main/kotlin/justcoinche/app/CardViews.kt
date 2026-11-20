@@ -106,7 +106,10 @@ internal fun TrickView(trick: Trick, type: ContractType) {
 
 /** A column of short white lines on the felt. */
 @Composable
-internal fun FeltText(vararg lines: String, modifier: Modifier = Modifier) {
+internal fun FeltText(vararg lines: String, modifier: Modifier = Modifier) = FeltText(lines.asList(), modifier)
+
+@Composable
+internal fun FeltText(lines: List<String>, modifier: Modifier = Modifier) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         lines.forEach { Text(it, color = Color.White) }
     }

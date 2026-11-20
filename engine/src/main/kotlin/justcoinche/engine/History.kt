@@ -15,6 +15,10 @@ package justcoinche.engine
  * with its player anyway. Each trick starts with its leader. A redeal writes
  * "-" for the play and the score. Notation: see Notation.kt.
  *
+ * A deal still being played can be written too, so that a game can be resumed
+ * at the very move where it stopped: its score reads "en-cours", its last
+ * trick may be incomplete, and "encheres -" means that nobody has spoken yet.
+ *
  * Only facts are stored. Reading a line replays it through the engine, so an
  * illegal bid or card, or a score that does not match, is rejected.
  */
@@ -25,31 +29,42 @@ object History {
     private const val TRICK_SEPARATOR = " / "
     private const val NOTHING = "-"
     private const val RAW = " brut"
+    private const val IN_PROGRESS = "en-cours"
     private const val FIELD_COUNT = 7
 
-    /** [rounded] is false for the final deal of a game: its score is then written raw, marked "brut". */
+    /**
+     * The line of [round], finished or not. [rounded] is false for the final
+     * deal of a game: its score is then written raw, marked "brut".
+     */
     fun write(round: Round, rounded: Boolean = true): String {
-        require(round.phase == Round.Phase.OVER || round.phase == Round.Phase.REDEAL) { "The deal is not finished" }
-        val tricks = round.cardPlay?.tricks?.joinToString(TRICK_SEPARATOR) { trick ->
-            "${trick.leader.letter}:" + trick.cards.joinToString(" ") { it.notation }
+        val play = round.cardPlay
+        val tricks = play?.let { it.tricks + listOf(it.currentTrick).filter { trick -> trick.cards.isNotEmpty() } }
+            ?.takeIf { it.isNotEmpty() }
+            ?.joinToString(TRICK_SEPARATOR) { trick ->
+                "${trick.leader.letter}:" + trick.cards.joinToString(" ") { it.notation }
+            }
+        val score = when (round.phase) {
+            Round.Phase.OVER ->
+                round.score(rounded).let { "NS ${it.northSouth} EO ${it.eastWest}" + if (rounded) "" else RAW }
+            Round.Phase.REDEAL -> NOTHING
+            Round.Phase.BIDDING, Round.Phase.PLAYING -> IN_PROGRESS
         }
-        val score = if (round.phase == Round.Phase.OVER) {
-            round.score(rounded).let { "NS ${it.northSouth} EO ${it.eastWest}" + if (rounded) "" else RAW }
-        } else {
-            NOTHING
-        }
+        val calls = round.auction.calls.joinToString(" ") { "${it.seat.letter}:${it.bid.notation}" }
         return listOf(
             VERSION,
             "donneur ${round.dealer.letter}",
             "regles ${rulesNotation(round.rules)}",
             "donne ${round.deal.encode().toULong().toString(HEX).padStart(HEX_DIGITS, '0')}",
-            "encheres " + round.auction.calls.joinToString(" ") { "${it.seat.letter}:${it.bid.notation}" },
+            "encheres ${calls.ifEmpty { NOTHING }}",
             "jeu ${tricks ?: NOTHING}",
             "score $score",
         ).joinToString(SEPARATOR)
     }
 
-    /** Replays a recorded deal. Throws [IllegalArgumentException] if the line is not a valid record. */
+    /**
+     * Replays a recorded deal, finished or still in progress. Throws
+     * [IllegalArgumentException] if the line is not a valid record.
+     */
     fun read(line: String): Round {
         val fields = line.split(SEPARATOR)
         require(fields.size == FIELD_COUNT && fields.first() == VERSION) { "Not a $VERSION history line: $line" }
@@ -60,7 +75,7 @@ object History {
         val dealer = parseSeat(field("donneur"))
         val deal = Deal.decode(field("donne").toULong(HEX).toLong())
         var round = Round.start(dealer, deal, parseRules(field("regles")))
-        field("encheres").split(" ").forEach { call ->
+        field("encheres").takeIf { it != NOTHING }?.split(" ")?.forEach { call ->
             val (seat, bid) = call.split(":")
             round = round.call(parseSeat(seat), parseBid(bid))
         }
@@ -85,7 +100,7 @@ object History {
         return round
     }
 
-    private fun rulesNotation(rules: Rules): String = listOf(
+    internal fun rulesNotation(rules: Rules): String = listOf(
         if (rules.scoringMode == ScoringMode.CONTRACT_POINTS) "pts-contrat" else "contrat+pts",
         if (rules.mustUnderTrump) "sous-couper" else "pisser-permis",
         if (rules.coincheTiming == CoincheTiming.IN_TURN) "coinche-tour" else "coinche-volee",
@@ -95,7 +110,7 @@ object History {
         "$TARGET${rules.targetScore}",
     ).joinToString(",")
 
-    private fun parseRules(text: String): Rules {
+    internal fun parseRules(text: String): Rules {
         val tokens = text.split(",").toSet()
         fun flag(yes: String, no: String): Boolean = when {
             yes in tokens -> true

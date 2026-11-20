@@ -31,3 +31,14 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
 }
+
+// Plays complete games between computer players and writes their records,
+// to analyse the computer players' behaviour without anyone playing by hand:
+// ./gradlew :engine:simulate --args="20 regles 42" (games, players, seed).
+tasks.register<JavaExec>("simulate") {
+    group = "application"
+    description = "Plays games between computer players and writes their records."
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("justcoinche.arena.SimulationKt")
+    javaLauncher.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(25)) })
+}

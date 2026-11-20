@@ -4,12 +4,13 @@ import justcoinche.engine.Bid
 import justcoinche.engine.Card
 import justcoinche.engine.CardSet
 import justcoinche.engine.ContractType
-import justcoinche.engine.Player
+import justcoinche.engine.Game
 import justcoinche.engine.Round
+import justcoinche.engine.Rules
 import justcoinche.engine.Seat
 import justcoinche.engine.Suit
 import justcoinche.engine.Trick
-import justcoinche.engine.viewFor
+import justcoinche.record.GameStore
 
 // What the table needs from a round, kept apart from the drawing so that it
 // can be unit tested without a phone.
@@ -17,21 +18,17 @@ import justcoinche.engine.viewFor
 /** The human always sits South; the three other seats are computer players. */
 internal val HUMAN = Seat.SOUTH
 
-/** Who has to act now, or null once the deal is over or redealt. */
-internal val Round.seatToAct: Seat?
-    get() = when (phase) {
-        Round.Phase.BIDDING -> auction.toSpeak
-        Round.Phase.PLAYING -> checkNotNull(cardPlay).toPlay
-        Round.Phase.OVER, Round.Phase.REDEAL -> null
-    }
+/**
+ * Opens the game left unfinished last time or, if there is none, starts a new
+ * one. A record that cannot be read is left on disk for analysis, and a new
+ * game starts rather than the app failing at every launch.
+ */
+internal fun GameStore.openGame(): Game =
+    runCatching { resume() }.getOrNull() ?: start(Rules(), Seat.entries.random())
 
-/** The computer player whose turn it is bids or plays once. */
-internal fun Round.botStep(bots: Map<Seat, Player>): Round {
-    val seat = checkNotNull(seatToAct) { "Nobody has to act" }
-    val bot = bots.getValue(seat)
-    val view = viewFor(seat)
-    return if (phase == Round.Phase.BIDDING) call(seat, bot.bid(view)) else play(bot.play(view))
-}
+/** The deal on show: the one being played, or the last one finished while the next one waits. */
+internal val Game.shownRound: Round?
+    get() = currentRound ?: results.lastOrNull()?.round
 
 /**
  * The trick shown in the middle of the table. Right after the fourth card the

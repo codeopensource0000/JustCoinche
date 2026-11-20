@@ -25,6 +25,14 @@ class Round private constructor(
             else -> Phase.PLAYING
         }
 
+    /** The seat that has to bid or play now, or null once the deal is over or redealt. */
+    val toAct: Seat?
+        get() = when (phase) {
+            Phase.BIDDING -> auction.toSpeak
+            Phase.PLAYING -> checkNotNull(cardPlay).toPlay
+            Phase.OVER, Phase.REDEAL -> null
+        }
+
     /** The contract the auction settled, or null while bidding or after a redeal. */
     val contract: Contract? get() = (auction.result as? AuctionResult.Contracted)?.contract
 

@@ -1,6 +1,7 @@
 package justcoinche.arena
 
 import justcoinche.engine.Deal
+import justcoinche.engine.Game
 import justcoinche.engine.Player
 import justcoinche.engine.Round
 import justcoinche.engine.Rules
@@ -28,6 +29,28 @@ fun playOut(start: Round, players: Map<Seat, Player>): Round {
         round = round.play(players.getValue(seat).play(round.viewFor(seat)))
     }
     return round
+}
+
+/** The player whose turn it is in the deal being played bids or plays once. */
+fun Game.playTurn(players: Map<Seat, Player>): Game {
+    val round = checkNotNull(currentRound) { "No deal is being played" }
+    val seat = checkNotNull(round.toAct)
+    val player = players.getValue(seat)
+    val view = round.viewFor(seat)
+    return if (round.phase == Round.Phase.BIDDING) call(seat, player.bid(view)) else play(player.play(view))
+}
+
+/**
+ * Plays [start] to the end of the game, shuffling each deal from [random].
+ * [afterMove] sees every state along the way, for instance to save it.
+ */
+fun playGame(start: Game, players: Map<Seat, Player>, random: Random, afterMove: (Game) -> Unit = {}): Game {
+    var game = start
+    while (!game.isOver) {
+        game = if (game.currentRound == null) game.deal(Deal.random(random)) else game.playTurn(players)
+        afterMove(game)
+    }
+    return game
 }
 
 /** Team A's average lead per deal, both tables together, and the 95% margin of error around it. */
