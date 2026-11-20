@@ -17,8 +17,17 @@ internal val RANK_LABELS = mapOf(
     Rank.JACK to "V", Rank.QUEEN to "D", Rank.KING to "R", Rank.ACE to "A",
 )
 
+/**
+ * Asks for the plain text glyph of the symbol before it. Without it, Android
+ * may draw a suit as a coloured emoji, which ignores the text colour.
+ */
+internal const val TEXT_GLYPH = "\uFE0E"
+
 internal val SUIT_SYMBOLS = mapOf(
-    Suit.SPADES to "♠", Suit.HEARTS to "♥", Suit.DIAMONDS to "♦", Suit.CLUBS to "♣",
+    Suit.SPADES to "♠$TEXT_GLYPH",
+    Suit.HEARTS to "♥$TEXT_GLYPH",
+    Suit.DIAMONDS to "♦$TEXT_GLYPH",
+    Suit.CLUBS to "♣$TEXT_GLYPH",
 )
 
 /** For example "10♥" or "V♣". */

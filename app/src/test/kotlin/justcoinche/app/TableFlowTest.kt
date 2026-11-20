@@ -73,8 +73,10 @@ class TableFlowTest {
                 Card.of(Rank.KING, Suit.DIAMONDS), Card.of(Rank.NINE, Suit.SPADES), Card.of(Rank.JACK, Suit.HEARTS),
             ),
         )
-        assertEquals(listOf("9♠", "A♥", "V♥", "7♥", "10♣", "R♦"), sortedForDisplay(hand).map { it.label })
-        assertEquals(listOf("9♠", "V♥", "A♥", "7♥", "10♣", "R♦"), sortedForDisplay(hand, hearts).map { it.label })
+        val plainOrder = sortedForDisplay(hand).map { it.label.plain() }
+        assertEquals(listOf("9♠", "A♥", "V♥", "7♥", "10♣", "R♦"), plainOrder)
+        val trumpOrder = sortedForDisplay(hand, hearts).map { it.label.plain() }
+        assertEquals(listOf("9♠", "V♥", "A♥", "7♥", "10♣", "R♦"), trumpOrder)
     }
 
     @Test
