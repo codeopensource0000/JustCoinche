@@ -84,24 +84,26 @@ internal class CardJudge(private val contract: Contract, private val rules: Rule
         }
     }
 
-    /** Finished-deal outcomes, built from the attack's card points (last trick included). */
     private inner class Outcomes(private val beloteTeam: Team?) {
-        fun of(attackCardPoints: Int, capot: Boolean = false): PlayOutcome {
-            val belote = { team: Team -> if (beloteTeam == team) BELOTE else 0 }
-            return PlayOutcome(
-                pointsMade = TeamPoints.of(
-                    attack,
-                    attackCardPoints + belote(attack),
-                    ALL_POINTS - attackCardPoints + belote(attack.opponent),
-                ),
-                beloteTeam = beloteTeam,
-                capotTeam = if (capot) attack else null,
-            )
-        }
-    }
-
-    private companion object {
-        const val ALL_POINTS = 162
-        const val BELOTE = 20
+        fun of(attackCardPoints: Int, capot: Boolean = false): PlayOutcome =
+            outcome(attack, attackCardPoints, capot, beloteTeam)
     }
 }
+
+/** A finished deal's outcome, built from the [attack]'s card points (last trick included). */
+internal fun outcome(attack: Team, attackCardPoints: Int, capot: Boolean, beloteTeam: Team?): PlayOutcome {
+    val belote = { team: Team -> if (beloteTeam == team) BELOTE else 0 }
+    return PlayOutcome(
+        pointsMade = TeamPoints.of(
+            attack,
+            attackCardPoints + belote(attack),
+            ALL_POINTS - attackCardPoints + belote(attack.opponent),
+        ),
+        beloteTeam = beloteTeam,
+        capotTeam = if (capot) attack else null,
+    )
+}
+
+/** Card points of a whole deal, the 10 for the last trick included. */
+internal const val ALL_POINTS = 162
+private const val BELOTE = 20

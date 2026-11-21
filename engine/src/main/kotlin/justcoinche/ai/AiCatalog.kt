@@ -58,17 +58,29 @@ object AiCatalog {
         "Expert PIMC + signaux",
         "Comme ia5, et lit aussi les appels directs : une défausse quand le partenaire est maître montre l'As.",
         Insight.AUCTION_AND_CALLS,
+    ) + experts(
+        "ia7",
+        "Expert complet",
+        "Comme ia6, et choisit ses enchères et ses coinches en simulant des donnes compatibles avec les " +
+            "enchères, jouées cartes ouvertes.",
+        Insight.AUCTION_AND_CALLS,
+        simulatedBidding = true,
     )
 
     /** One expert at each effort: "ia4" thinks normally, "ia4-rapide" and "ia4-fort" less and more. */
-    private fun experts(id: String, name: String, description: String, insight: Insight) =
-        Effort.entries.map { effort ->
-            AiEntry(
-                if (effort == Effort.NORMAL) id else "$id-${effort.label}",
-                "$name (${effort.label})",
-                "$description ${effort.samples} donnes tirées par coup.",
-            ) { _, seed -> PimcPlayer(effort, seed, insight = insight) }
-        }
+    private fun experts(
+        id: String,
+        name: String,
+        description: String,
+        insight: Insight,
+        simulatedBidding: Boolean = false,
+    ) = Effort.entries.map { effort ->
+        AiEntry(
+            if (effort == Effort.NORMAL) id else "$id-${effort.label}",
+            "$name (${effort.label})",
+            "$description ${effort.samples} donnes tirées par coup.",
+        ) { _, seed -> PimcPlayer(effort, seed, insight = insight, simulatedBidding = simulatedBidding) }
+    }
 
     /** The players a human may face in the app: every honest one. */
     val playable: List<AiEntry> get() = entries.filter { !it.cheats }

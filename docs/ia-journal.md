@@ -180,3 +180,30 @@ l'arène. Les échecs sont notés tels quels.
   différence mesurable.** Les deux camps réussissent exactement les mêmes contrats (591 sur
   795). La lecture des appels ne change presque jamais la décision. ia6 reste dans le
   catalogue pour la comparaison, mais n'apporte rien en l'état.
+
+## Étape 7 — `ia7` enchères et coinche par simulation (tag `ia7-complet`)
+
+- **Enchères par simulation** (`SimulatedBidding.kt`, « simulation de Borel » de GIB) : la
+  convention propose son appel ; on le compare au passe, à l'appel 10 points plus haut et plus
+  bas, à la coinche ou à la surcoinche quand elles sont permises, et, quand la convention
+  passe, à la plus petite annonce dans la plus longue couleur où l'on a le Valet ou le 9. Pour
+  chaque donne tirée compatible avec les enchères (lecture d'ia5), chaque appel candidat est
+  essayé, la convention finit les enchères pour les quatre joueurs, et le contrat atteint est
+  joué cartes ouvertes (une recherche à fenêtre nulle : fait ou chuté). L'appel au meilleur
+  score moyen l'emporte ; à égalité, celui de la convention. Le jeu de la carte est celui
+  d'ia6.
+- **Limites connues** : les autres sont supposés enchérir selon la convention ; un contrat
+  joué cartes ouvertes est plus facile qu'en vrai, ce qui flatte le déclarant.
+- **Preuves** : appel toujours légal et identique pour une même position et une même graine ;
+  avec les huit atouts, ia7 annonce plus haut que les 100 de la convention, puisque tout
+  contrat à cœur est fait. Sabotages : 2 sur 2 repérés (score vu du côté adverse ; pas de
+  candidat plus haut).
+- **Temps** : la première mesure (+31,1 ± 22,2, graine 11) a montré une décision d'enchère de
+  17,5 s au pire, faute de limite. Corrigé : au moins 4 donnes, puis arrêt à la limite de
+  temps du réglage. Deux pièges évités en route : un filtre qui aurait testé l'heure pour
+  toutes les donnes avant d'en juger aucune, et un dépassement de capacité quand il n'y a pas
+  de limite (on compare désormais le temps écoulé).
+- **`ia7-rapide` contre `ia6-rapide`, 400 donnes (graine 11), avec la limite : +27,4 ± 22,7
+  par donne (significatif)**. ia7 prend beaucoup plus de contrats (474 contre 319) et en
+  réussit 286 (60 %), contre 167 sur 319 (52 %) pour ia6. Réflexion d'ia7 : 225 ms en
+  moyenne, 7,5 s au pire, sous la charge de 8 parties en parallèle.

@@ -28,11 +28,12 @@ enum class Insight {
 }
 
 /**
- * "Expert PIMC" (ia4 to ia6): the card play of the bridge programs (GIB). For each
+ * "Expert PIMC" (ia4 to ia7): the card play of the bridge programs (GIB). For each
  * decision it draws deals of the hidden cards that agree with the play so
  * far ([HiddenCards]), scores every legal card on each of them with all the
  * cards open ([CardJudge]), and plays the card with the best mean score.
- * Bids like ia2. With an [insight], the drawn deals also follow what the
+ * Bids like ia2, or by simulation ([SimulatedBidding], ia7) if
+ * [simulatedBidding]. With an [insight], the drawn deals also follow what the
  * auction and the calls tell ([Reading]): each one is kept with the
  * probability its reading gives.
  *
@@ -49,11 +50,18 @@ class PimcPlayer(
     private val seed: Long,
     private val timeLimited: Boolean = true,
     private val insight: Insight = Insight.NONE,
+    simulatedBidding: Boolean = false,
 ) : Player {
     private var judge: CardJudge? = null
     private var judged: Contract? = null
+    private val bidding = if (simulatedBidding) {
+        val limit = if (timeLimited) effort.maxMillis else Long.MAX_VALUE / NANOS_PER_MILLI
+        SimulatedBidding(minOf(effort.samples, MAX_BIDDING_DEALS), seed, limit)
+    } else {
+        null
+    }
 
-    override fun bid(view: PlayerView): Bid = PetitJeu.bid(view)
+    override fun bid(view: PlayerView): Bid = bidding?.bid(view) ?: PetitJeu.bid(view)
 
     override fun play(view: PlayerView): Card {
         val cards = view.playableCards.toList()
@@ -128,6 +136,7 @@ class PimcPlayer(
     private companion object {
         const val MIN_SAMPLES = 4
         const val MAX_CANDIDATES = 200
+        const val MAX_BIDDING_DEALS = 32
         const val NANOS_PER_MILLI = 1_000_000L
         const val MIX = 1_000_003L
     }

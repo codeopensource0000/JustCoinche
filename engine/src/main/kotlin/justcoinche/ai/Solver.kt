@@ -29,13 +29,15 @@ enum class Objective {
  * ordering, and pointless cards next to each other tried only once. The
  * belote does not depend on the play and is left out.
  *
- * Not thread-safe: one solver per thread.
+ * Not thread-safe: one solver per thread. Its table takes about 36 bytes
+ * per entry, 2^[tableBits] entries: 9 MB by default.
  */
 class Solver(
     private val type: ContractType,
     private val rules: Rules,
     private val attack: Team,
     private val objective: Objective = Objective.POINTS,
+    tableBits: Int = TABLE_BITS,
 ) {
     private val trumpSuit = (type as? ContractType.SuitTrump)?.trump?.ordinal ?: NO_TRUMP
     private val strength = IntArray(DECK) { type.strength(Card(it)) }
@@ -59,7 +61,7 @@ class Solver(
     /** Points of the cards not yet in a finished trick: what is still to be won. */
     private var pointsLeft = 0
 
-    private val table = TranspositionTable()
+    private val table = TranspositionTable(1 shl tableBits)
 
     /** The transposition table can be switched off, to check that it changes no result. */
     internal var useTable = true
@@ -334,6 +336,7 @@ class Solver(
         const val WINNING = 1000
         const val FIRST = 1_000_000
         const val INFINITY = 100_000
+        const val TABLE_BITS = 18
     }
 }
 
@@ -359,14 +362,14 @@ private fun weakest(cards: Int, strength: IntArray): Int {
  * the four hands and the leader, with the best lead found. One entry per
  * slot, the newest wins.
  */
-private class TranspositionTable {
-    private val keyHigh = LongArray(SIZE)
-    private val keyLow = LongArray(SIZE)
-    private val keyLeader = IntArray(SIZE)
-    private val stamp = IntArray(SIZE)
-    val lower = IntArray(SIZE)
-    val upper = IntArray(SIZE)
-    val best = IntArray(SIZE)
+private class TranspositionTable(private val size: Int) {
+    private val keyHigh = LongArray(size)
+    private val keyLow = LongArray(size)
+    private val keyLeader = IntArray(size)
+    private val stamp = IntArray(size)
+    val lower = IntArray(size)
+    val upper = IntArray(size)
+    val best = IntArray(size)
     private var generation = 1
 
     fun clear() {
@@ -412,11 +415,10 @@ private class TranspositionTable {
     private fun slotOf(hands: IntArray, leader: Int): Int {
         var h = high(hands) * MIX xor low(hands) xor leader.toLong()
         h = h xor (h ushr MIX_SHIFT)
-        return (h * MIX).ushr(MIX_SHIFT).toInt() and (SIZE - 1)
+        return (h * MIX).ushr(MIX_SHIFT).toInt() and (size - 1)
     }
 
     private companion object {
-        const val SIZE = 1 shl 18
         const val LAST = 3
         const val INT_BITS = 32
         const val UNSIGNED = 0xFFFFFFFFL
