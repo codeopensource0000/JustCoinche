@@ -52,3 +52,13 @@ tasks.register<JavaExec>("duel") {
     mainClass.set("justcoinche.arena.DuelKt")
     javaLauncher.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(25)) })
 }
+
+// Times the open-card solver on whole deals:
+// ./gradlew :engine:solverBench --args="1000 5" (deals, seed).
+tasks.register<JavaExec>("solverBench") {
+    group = "application"
+    description = "Times the open-card solver on whole deals."
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("justcoinche.arena.SolverBenchKt")
+    javaLauncher.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(25)) })
+}

@@ -84,7 +84,7 @@ class CardPlay private constructor(
          * The belote exists only in a suit contract: there is no trump in
          * no-trump, and it is disabled in all-trump (docs/regles.md §6).
          */
-        private fun beloteTeam(deal: Deal, contract: ContractType): Team? {
+        internal fun beloteTeam(deal: Deal, contract: ContractType): Team? {
             if (contract !is ContractType.SuitTrump) return null
             val kingAndQueen = CardSet.of(
                 listOf(Card.of(Rank.KING, contract.trump), Card.of(Rank.QUEEN, contract.trump)),

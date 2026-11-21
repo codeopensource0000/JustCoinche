@@ -36,6 +36,12 @@ object AiCatalog {
             "Règles+",
             "Petit jeu aux enchères (barème As, 9, Valet), coinche simple, appel direct au jeu de la carte.",
         ) { _, _ -> RulesPlusPlayer() },
+        AiEntry(
+            "ia3",
+            "Oracle (triche)",
+            "Voit toutes les cartes et joue le coup exact. Sert de mesure, jamais d'adversaire.",
+            cheats = true,
+        ) { _, _ -> OraclePlayer() },
     )
 
     /** The players a human may face in the app: every honest one. */
