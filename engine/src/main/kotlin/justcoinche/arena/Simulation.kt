@@ -1,5 +1,6 @@
 package justcoinche.arena
 
+import justcoinche.ai.AiCatalog
 import justcoinche.engine.Game
 import justcoinche.engine.Player
 import justcoinche.engine.Round
@@ -18,8 +19,9 @@ import kotlin.random.Random
  *
  *     ./gradlew :engine:simulate --args="20 regles 42"
  *
- * Arguments: number of games, players ("regles" or "aleatoire"), seed. The
- * records go to engine/build/simulations/<date-time>/, and a summary is printed.
+ * Arguments: number of games, players ("regles", "aleatoire" or the id of an
+ * AI of the catalog, such as "ia5-rapide"), seed. The records go to
+ * engine/build/simulations/<date-time>/, and a summary is printed.
  */
 fun main(args: Array<String>) {
     val games = args.getOrNull(0)?.toInt() ?: DEFAULT_GAMES
@@ -32,12 +34,14 @@ fun main(args: Array<String>) {
         when (kind) {
             "regles" -> RulePlayer()
             "aleatoire" -> RandomPlayer(Random(random.nextLong()))
-            else -> throw IllegalArgumentException("Unknown players '$kind': regles or aleatoire")
+            else -> AiCatalog[kind].create(it, random.nextLong())
         }
     }
     val store = GameStore(dir)
+    val names = Seat.entries.associateWith { kind }
     val played = List(games) {
-        playGame(store.start(Rules(), Seat.entries.random(random)), players, random) { store.save(it) }
+        val start = store.start(Rules(), Seat.entries.random(random), players = names)
+        playGame(start, players, random) { store.save(it) }
     }
     println("Seed $seed, $kind players, records in ${dir.absolutePath}")
     println(summary(played))

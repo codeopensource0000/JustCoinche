@@ -207,3 +207,73 @@ l'arène. Les échecs sont notés tels quels.
   par donne (significatif)**. ia7 prend beaucoup plus de contrats (474 contre 319) et en
   réussit 286 (60 %), contre 167 sur 319 (52 %) pour ia6. Réflexion d'ia7 : 225 ms en
   moyenne, 7,5 s au pire, sous la charge de 8 parties en parallèle.
+
+## Étape 8 — tournoi final et bilan (tag `ia-soiree-fin`)
+
+### Toutes les mesures (duplicate, écart moyen par donne et marge à 95 %)
+
+| Match | Donnes | Écart | Verdict |
+|---|---|---|---|
+| ia1 Débutant contre ia0 Aléatoire | 400 | +165,1 ± 12,9 | significatif |
+| ia2 Règles+ contre ia1 | 2 000 | +20,1 ± 6,1 | significatif |
+| ia3 Oracle (triche) contre ia2, mêmes enchères | 400 | +83,1 ± 12,0 | plafond du jeu de la carte |
+| ia4-rapide contre ia2, mêmes enchères | 400 | +21,3 ± 12,1 | significatif |
+| ia5-rapide contre ia4-rapide | 800 | +10,3 ± 7,3 | significatif |
+| ia6-rapide contre ia5-rapide | 800 | −0,0 ± 2,9 | aucune différence |
+| ia7-rapide contre ia6-rapide | 400 | +27,4 ± 22,7 | significatif |
+| **ia7-rapide contre ia2** | 400 | **+57,8 ± 22,1** | significatif |
+| ia5 (normal, 48 donnes) contre ia5-rapide (16) | 200 | −2,8 ± 15,4 | aucune différence |
+
+- **La meilleure IA est `ia7-rapide`** : +57,8 par donne contre ia2, et elle bat chacune des
+  précédentes. Réflexion sur le Mac : 250 ms en moyenne, 6 à 7,5 s au pire sous la charge de
+  8 parties en parallèle.
+- **Plus de calcul n'aide pas** : 48 donnes tirées au lieu de 16 ne gagnent rien de
+  mesurable. Les erreurs du PIMC viennent de sa méthode (jouer comme si l'on verrait ensuite
+  toutes les cartes), pas du nombre de donnes. Les réglages rapides suffisent.
+- **Ce qui rapporte** : le jeu de la carte par solveur (+21 face à ia2), la lecture des
+  enchères (+10), les enchères et la coinche par simulation (+27). La lecture des appels
+  (ia6) ne rapporte rien en l'état.
+
+### Parties enregistrées et analysées
+
+`./gradlew :engine:simulate --args="3 ia7-rapide 42"` accepte maintenant un identifiant d'IA
+et écrit l'IA de chaque place dans l'en-tête. Sur 3 parties (25 donnes) entre quatre
+ia7-rapide :
+
+- 12 coinches : le contrat coinché a chuté 8 fois sur 12. La coinche par simulation est
+  plutôt juste.
+- 6 surcoinches, dont 2 seulement justifiées : c'est le point faible. Juger un contrat cartes
+  ouvertes flatte le déclarant, et ce biais pèse le plus sur la surcoinche.
+- Entre ia7, contrat moyen de 113 et 47 % de contrats réussis : on surenchérit l'un contre
+  l'autre. Face à ia2, ia7 réussit 65 % de ses contrats.
+- Je n'ai pas analysé le jeu de la carte coup par coup. Il faudrait un outil qui compare
+  chaque carte jouée à celle de l'Oracle sur la vraie donne et relève les plus grosses pertes.
+
+### Scénarios du cadrage (§7)
+
+Mains complétées de façon plausible ; Sud tient V♥ 8♥ 7♥ A♠ 10♠ 9♦ 8♣ 7♣ et entame contre
+le contrat de son partenaire. Décisions de 5 graines au réglage normal :
+
+| Scénario | Attendu | ia2 | ia4 | ia5 |
+|---|---|---|---|---|
+| 1. Relance libre (le partenaire a le 9) | petit atout | V♥ | V♥ ×3, 10♠ ×2 | 10♠ ×4, 7♥ ×1 |
+| 2. Relance forcée (9 non garanti) | V♥ | V♥ | 10♠ ×3, V♥ ×2 | V♥ ×4, 10♠ ×1 |
+
+- **Scénario 2 réussi par ia5** (4 fois sur 5), qui change d'entame selon les enchères sans
+  règle écrite à la main.
+- **Scénario 1 : échec connu.** ia5 entame le 10♠ au lieu d'un petit atout. Il n'est pas
+  ajouté aux tests pour ne pas casser la CI : il est noté ici.
+- Les scénarios 3 (blocage) et 4 (garder l'atout maître) n'ont pas de main précise dans le
+  cadrage : non testés.
+
+### Ce qui reste à faire
+
+1. **Toi** : installer l'APK et jouer contre `ia7-rapide` (menu → Options). C'est la seule
+   façon de vérifier la page Options, le badge « réfléchit… » et la vitesse réelle sur le
+   téléphone. L'IA par défaut est `ia5-rapide`, plus rapide ; si ia7 est assez vive sur le
+   téléphone, elle pourra devenir l'IA par défaut.
+2. Choisir ce qu'on garde de la branche `test_ia` et la fusionner dans `main`.
+3. Intégrer le jeu de cartes svg-cards (LGPL), comme prévu après la soirée.
+4. Pistes d'amélioration, par gain attendu : surcoinche plus prudente ; un outil d'analyse
+   du jeu de la carte contre l'Oracle ; « alpha-mu » (Cazenave) contre le défaut de fusion
+   des stratégies ; un solveur plus rapide (la première entame coûte le plus).
