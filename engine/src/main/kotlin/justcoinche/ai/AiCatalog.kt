@@ -31,6 +31,11 @@ object AiCatalog {
         AiEntry("ia1", "Débutant", "Réflexes simples : annonce avec 3 atouts dont le Valet ou le 9.") { _, _ ->
             RulePlayer()
         },
+        AiEntry(
+            "ia2",
+            "Règles+",
+            "Petit jeu aux enchères (barème As, 9, Valet), coinche simple, appel direct au jeu de la carte.",
+        ) { _, _ -> RulesPlusPlayer() },
     )
 
     /** The players a human may face in the app: every honest one. */
