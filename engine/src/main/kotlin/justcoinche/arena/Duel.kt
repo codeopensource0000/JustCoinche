@@ -29,7 +29,7 @@ fun main(args: Array<String>) {
     println(report)
 }
 
-/** Decision counts and thinking time of one side of a match. */
+/** Decision counts and thinking time of one side of a match, safe to share between threads. */
 class DecisionStats {
     var decisions = 0
         private set
@@ -38,14 +38,18 @@ class DecisionStats {
 
     fun <T> measure(decision: () -> T): T {
         val start = System.nanoTime()
-        return decision().also {
-            val elapsed = System.nanoTime() - start
-            decisions++
-            totalNanos += elapsed
-            maxNanos = maxOf(maxNanos, elapsed)
-        }
+        return decision().also { record(System.nanoTime() - start) }
     }
 
+    // The arena plays several deals at once: the counts are shared between threads.
+    @Synchronized
+    private fun record(elapsed: Long) {
+        decisions++
+        totalNanos += elapsed
+        maxNanos = maxOf(maxNanos, elapsed)
+    }
+
+    @Synchronized
     override fun toString(): String {
         val mean = if (decisions == 0) 0.0 else totalNanos / NANOS_PER_MILLI / decisions
         return "%d decisions, %.2f ms mean, %.1f ms max".format(decisions, mean, maxNanos / NANOS_PER_MILLI)

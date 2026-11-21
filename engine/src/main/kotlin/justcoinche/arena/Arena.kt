@@ -8,6 +8,8 @@ import justcoinche.engine.Rules
 import justcoinche.engine.Seat
 import justcoinche.engine.Team
 import justcoinche.engine.viewFor
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
 import kotlin.math.sqrt
 import kotlin.random.Random
 
@@ -90,6 +92,11 @@ fun duplicateMatch(teamA: PlayerFactory, teamB: PlayerFactory, deals: Int, seed:
 /**
  * The rounds of a duplicate match, deal by deal: team A sits North-South in
  * the first round of each pair and East-West in the second.
+ *
+ * The deals are drawn first, from [seed], then played on every processor at
+ * once: each table gets its own players, so the result does not depend on
+ * the order the deals finish in, as long as the players themselves do not.
+ * The factories, though, are called from several threads.
  */
 fun duplicateRounds(
     teamA: PlayerFactory,
@@ -99,12 +106,22 @@ fun duplicateRounds(
     rules: Rules,
 ): List<Pair<Round, Round>> {
     val random = Random(seed)
-    return List(deals) { index ->
-        val deal = Deal.random(random)
-        val dealer = Seat.entries[index % Seat.entries.size]
-        val first = playOut(Round.start(dealer, deal, rules), seating(northSouth = teamA, eastWest = teamB))
-        val second = playOut(Round.start(dealer, deal, rules), seating(northSouth = teamB, eastWest = teamA))
-        first to second
+    val drawn = List(deals) { Deal.random(random) }
+    val pool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
+    try {
+        val pairs = drawn.mapIndexed { index, deal ->
+            pool.submit(
+                Callable {
+                    val dealer = Seat.entries[index % Seat.entries.size]
+                    val first = playOut(Round.start(dealer, deal, rules), seating(teamA, eastWest = teamB))
+                    val second = playOut(Round.start(dealer, deal, rules), seating(teamB, eastWest = teamA))
+                    first to second
+                },
+            )
+        }
+        return pairs.map { it.get() }
+    } finally {
+        pool.shutdown()
     }
 }
 

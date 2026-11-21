@@ -84,3 +84,37 @@ l'arène. Les échecs sont notés tels quels.
   2 ms en moyenne, 420 ms au pire.
 - Tests : 183 exécutés (moteur et application), 0 échec ; `./gradlew check` vert (detekt et
   lint compris).
+
+## Étape 3 — `ia4` Expert PIMC (tag `ia4-pimc`)
+
+- **Tirage des donnes** (`HiddenCards.kt`) : les cartes non vues sont distribuées aux trois
+  autres joueurs, en respectant le nombre de cartes de chacun et tout ce que leur jeu a
+  montré. Une carte est exclue d'une main exactement quand la détenir aurait rendu illégale
+  une carte jouée : couleur non fournie, atout non joué, atout non monté, sous-coupe. Les
+  obligations du jeu viennent chacune d'une seule carte détenue, ce qui rend cette règle
+  exacte. Les cartes les plus contraintes sont placées d'abord ; un tirage bloqué recommence.
+- **`ia4`** (`PimcPlayer.kt`) : pour chaque décision, il tire des donnes, juge chaque carte
+  jouable sur chacune avec le juge de l'étape 2 et joue la meilleure carte en moyenne ; à
+  égalité, celle que jouerait ia2. Les enchères sont celles d'ia2. Trois réglages : rapide
+  (16 donnes, 1 s au plus), normal (48 donnes, 2,5 s), fort (128 donnes, 6 s), avec au moins
+  4 donnes même si le temps est dépassé. Les tirages viennent de la graine et de la position :
+  une même position donne la même carte, sauf si la limite de temps coupe court.
+- **Arène en parallèle** : les donnes d'un match sont tirées d'abord, puis jouées sur tous les
+  processeurs (le Mac en a 4 physiques, 8 logiques). Le résultat ne dépend pas de l'ordre
+  d'arrivée. Les temps de réflexion affichés sont donc mesurés sous charge, environ deux fois
+  plus longs qu'en jeu réel.
+- **Preuves** :
+  1. 400 positions de jeu aléatoires × 20 tirages : chaque donne tirée rejoue toute la
+     partie à travers le moteur sans coup illégal, et les vraies mains ne sont jamais exclues.
+  2. Une couleur non fournie n'est jamais redonnée (plus de 100 cas vérifiés) ; sans
+     contrainte, chaque carte va environ une fois sur trois à chacun des autres joueurs.
+  3. ia4 joue toujours une carte légale, quels que soient le contrat (capot, capot belote,
+     coinche) et le décompte (80 positions) ; même position et même graine, même carte.
+  4. Sabotages : 3 sur 3 repérés (aucune exclusion ; exclusions réduites aux couleurs non
+     fournies, ce qui oublie les obligations d'atout ; exclusions ignorées au tirage).
+- **`ia4-rapide` contre `ia2`, 400 donnes : +21,3 ± 12,1 par donne (significatif)**, avec
+  les mêmes enchères : c'est le gain du seul jeu de la carte. Le plafond mesuré par l'Oracle
+  était +83. Contrats réussis : ia4-rapide 303 sur 392, ia2 271 sur 392. Réflexion : 47 ms
+  en moyenne, 4,6 s au pire (sous la charge de 8 parties en parallèle).
+- Le code de lecture des enchères et des appels (`Inference.kt`) entre dans ce commit, car
+  `PimcPlayer` le référence, mais il n'est proposé et mesuré qu'aux étapes suivantes.
