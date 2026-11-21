@@ -48,6 +48,11 @@ object AiCatalog {
         "Tire des donnes compatibles avec le jeu, les résout cartes ouvertes et joue la meilleure carte " +
             "en moyenne. Enchères de Règles+.",
         Insight.NONE,
+    ) + experts(
+        "ia5",
+        "Expert PIMC + enchères",
+        "Comme ia4, mais les donnes tirées doivent aussi expliquer les enchères entendues, lues avec le petit jeu.",
+        Insight.AUCTION,
     )
 
     /** One expert at each effort: "ia4" thinks normally, "ia4-rapide" and "ia4-fort" less and more. */

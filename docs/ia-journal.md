@@ -118,3 +118,22 @@ l'arène. Les échecs sont notés tels quels.
   en moyenne, 4,6 s au pire (sous la charge de 8 parties en parallèle).
 - Le code de lecture des enchères et des appels (`Inference.kt`) entre dans ce commit, car
   `PimcPlayer` le référence, mais il n'est proposé et mesuré qu'aux étapes suivantes.
+
+## Étape 4 — `ia5` inférence par les enchères (tag `ia5-encheres`)
+
+- **Lecture des enchères** (`Inference.kt`, `AuctionReading`) : pour chaque donne tirée, on
+  rejoue le petit jeu avec la main tirée de chaque autre joueur, appel par appel. Chaque
+  appel que la convention n'aurait pas fait multiplie le poids de la donne par 0,1. La donne
+  est gardée avec une probabilité égale à son poids (« tirage par rejet »). Après 200
+  essais sans donne gardée, on prend celle qui explique le mieux les enchères : un joueur
+  peut toujours s'écarter de la convention.
+- **Preuves** : sur 300 donnes enchéries par quatre ia2, la vraie donne a toujours un poids
+  de 1, alors qu'une donne tirée sans les enchères les contredit dans plus de la moitié des
+  cas. Sabotage repéré : un modèle qui passe toujours.
+- **`ia5-rapide` contre `ia4-rapide`** : +8,8 ± 10,3 par donne sur 400 donnes (graine 3, pas
+  significatif seul), puis **+10,3 ± 7,3 sur 800 donnes (graine 11, significatif)**, soit
+  environ +9,8 sur 1 200 donnes. Contrats réussis (graine 11) : ia5 614 sur 795, ia4 583 sur
+  795. Réflexion : 68 ms en moyenne contre 53 ms, le prix du tirage par rejet.
+- **Écart au plan, noté tel quel** : un premier lancement du match de 800 donnes a échoué,
+  parce que j'ai modifié le catalogue pendant que Gradle compilait pour ce match. Depuis, les
+  matchs tournent à partir d'une copie figée des classes compilées.
