@@ -1,73 +1,204 @@
 package justcoinche.app
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.ImageShader
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.random.Random
 
-// The table's look: a green felt, dark translucent panels edged with gold.
+// The table's look, all drawn in code: a green felt with a fine grain and
+// darker edges, names engraved in it, dark pills for what is said, and a
+// wooden side panel for the menu.
 
-internal val FELT: Brush = Brush.radialGradient(listOf(Color(0xFF2F8F5B), Color(0xFF0E4A2B)))
-internal val PANEL = Color(0xE60F1D16)
-private val PANEL_EDGE = Color(0x59F5C542)
-
-/** A dark rounded panel on the felt; [highlighted] edges it with bright gold, for the player to act. */
+/** Fine random grain, tiled over the felt, the wood and the cards' paper. */
 @Composable
-internal fun Panel(
-    modifier: Modifier = Modifier,
-    highlighted: Boolean = false,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    Surface(
+internal fun rememberGrain(): ImageBitmap = remember {
+    val random = Random(GRAIN_SEED)
+    val pixels = IntArray(GRAIN_SIZE * GRAIN_SIZE) {
+        val shade = random.nextInt(GRAIN_SHADES)
+        // Grey grain with a low alpha: it darkens or lightens what is under it a little.
+        (random.nextInt(GRAIN_ALPHA) shl ALPHA_SHIFT) or (shade shl RED_SHIFT) or (shade shl GREEN_SHIFT) or shade
+    }
+    Bitmap.createBitmap(pixels, GRAIN_SIZE, GRAIN_SIZE, Bitmap.Config.ARGB_8888).asImageBitmap()
+}
+
+/** The felt: deep green, lit from the middle, with a grain and a stitched border. */
+@Composable
+internal fun Felt(content: @Composable BoxScope.() -> Unit) {
+    val grain = rememberGrain()
+    Box(
+        Modifier.fillMaxSize().drawBehind {
+            drawRect(Brush.radialGradient(listOf(FELT_LIGHT, FELT_DARK), radius = size.maxDimension * 0.62f))
+            drawRect(ShaderBrush(ImageShader(grain, TileMode.Repeated, TileMode.Repeated)))
+            val inset = 14.dp.toPx()
+            drawRoundRect(
+                FELT_SEAM,
+                topLeft = Offset(inset, inset),
+                size = androidx.compose.ui.geometry.Size(size.width - 2 * inset, size.height - 2 * inset),
+                cornerRadius = CornerRadius(18.dp.toPx()),
+                style = Stroke(1.5.dp.toPx()),
+            )
+        },
+        content = content,
+    )
+}
+
+/** A name engraved in the felt: darker than it, with a light edge below; gold when it is that player's turn. */
+@Composable
+internal fun Engraved(text: String, modifier: Modifier = Modifier, size: TextUnit = 22.sp, lit: Boolean = false) {
+    Text(
+        text,
         modifier,
-        shape = RoundedCornerShape(14.dp),
-        color = PANEL,
-        border = BorderStroke(if (highlighted) 2.dp else 1.dp, if (highlighted) GOLD else PANEL_EDGE),
-    ) {
-        Column(
-            Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            content = content,
+        maxLines = 1,
+        style = TextStyle(
+            color = if (lit) GOLD else ENGRAVED,
+            fontSize = size,
+            fontWeight = FontWeight.Bold,
+            shadow = Shadow(if (lit) LIT_SHADOW else ENGRAVED_EDGE, Offset(0f, 2f), 1f),
+        ),
+    )
+}
+
+/** A dark pill with white text, for a bid or a short message on the felt. */
+@Composable
+internal fun Pill(text: String, modifier: Modifier = Modifier, gold: Boolean = false) {
+    Surface(modifier, shape = CircleShape, color = PILL) {
+        Text(
+            text,
+            Modifier.padding(horizontal = 14.dp, vertical = 4.dp),
+            color = if (gold) GOLD else Color.White,
+            fontSize = 17.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
 
-/** One line of white text on a panel or on the felt. */
+/** The dealer's token: a red and white casino chip marked D. */
 @Composable
-internal fun FeltText(
-    text: String,
-    modifier: Modifier = Modifier,
-    size: TextUnit = 13.sp,
-    bold: Boolean = false,
-    color: Color = Color.White,
-) {
-    Text(
-        text,
+@Suppress("MagicNumber") // a drawing: each number is a proportion of the chip
+internal fun DealerChip(modifier: Modifier = Modifier) {
+    Box(modifier.size(30.dp), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val r = size.minDimension / 2
+            drawCircle(CHIP_RED, r)
+            repeat(CHIP_NOTCHES) { i ->
+                val angle = Math.toRadians(i * 360.0 / CHIP_NOTCHES)
+                val rim = r * 0.84f
+                val point = center + Offset((rim * cos(angle)).toFloat(), (rim * sin(angle)).toFloat())
+                drawCircle(Color.White, r * 0.13f, point)
+            }
+            drawCircle(Color.White, r * 0.62f)
+            drawCircle(CHIP_RED, r * 0.62f, style = Stroke(r * 0.08f))
+        }
+        Text("D", color = CHIP_RED, fontWeight = FontWeight.Black, fontSize = 15.sp)
+    }
+}
+
+/** A dark rounded panel over the felt, for the bidding. */
+@Composable
+internal fun DarkPanel(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    Surface(modifier, shape = RoundedCornerShape(22.dp), color = PILL, shadowElevation = 8.dp) {
+        Column(Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally, content = content)
+    }
+}
+
+/** A light panel, like a sheet of paper, for results and the menu's pages. */
+@Composable
+internal fun LightPanel(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    Surface(
         modifier,
-        color = color,
-        fontSize = size,
-        fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
+        shape = RoundedCornerShape(18.dp),
+        color = PAPER,
+        border = BorderStroke(1.dp, PAPER_EDGE),
+        shadowElevation = 10.dp,
+    ) {
+        Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, content = content)
+    }
+}
+
+/** A wooden board, for the side menu: warm stripes along its length and the same grain. */
+@Composable
+@Suppress("MagicNumber") // a drawing: each number is a shade or a stroke width of the grain
+internal fun Wood(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+    val grain = rememberGrain()
+    val stripes = remember {
+        val random = Random(WOOD_SEED)
+        List(WOOD_STRIPES) { random.nextFloat() to random.nextFloat() }
+    }
+    Box(
+        modifier.drawBehind {
+            drawRect(WOOD)
+            stripes.forEach { (position, strength) ->
+                val x = position * size.width
+                val stripe = WOOD_DARK.copy(alpha = 0.15f + 0.35f * strength)
+                drawLine(stripe, Offset(x, 0f), Offset(x, size.height), 1.5f + 5f * strength)
+            }
+            drawRect(ShaderBrush(ImageShader(grain, TileMode.Repeated, TileMode.Repeated)))
+        },
+        content = content,
     )
 }
 
 /** Places an element exactly on an [Area] of the table. */
 internal fun Modifier.place(area: Area): Modifier = offset(area.left, area.top).size(area.width, area.height)
 
-internal val DIM_TEXT = Color(0xB3FFFFFF)
+internal val GOLD = Color(0xFFF5C542)
+internal val PAPER = Color(0xFFF1EDE8)
+internal val INK = Color(0xFF3B3632)
+internal val PILL = Color(0xF0161A17)
+private val FELT_LIGHT = Color(0xFF13843A)
+private val FELT_DARK = Color(0xFF07501F)
+private val FELT_SEAM = Color(0x33000000)
+private val ENGRAVED = Color(0xFF053014)
+private val ENGRAVED_EDGE = Color(0x5CFFFFFF)
+private val CHIP_RED = Color(0xFFD7262B)
+private val LIT_SHADOW = Color(0x99000000)
+private val PAPER_EDGE = Color(0x22000000)
+private val WOOD = Color(0xFFA9622F)
+private val WOOD_DARK = Color(0xFF5A2E12)
+private const val GRAIN_SEED = 7
+private const val WOOD_SEED = 11
+private const val GRAIN_SIZE = 160
+private const val GRAIN_SHADES = 256
+private const val GRAIN_ALPHA = 22
+private const val ALPHA_SHIFT = 24
+private const val RED_SHIFT = 16
+private const val GREEN_SHIFT = 8
+private const val CHIP_NOTCHES = 8
+private const val WOOD_STRIPES = 70

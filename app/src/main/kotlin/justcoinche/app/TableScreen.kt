@@ -1,15 +1,15 @@
 package justcoinche.app
 
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -18,7 +18,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import justcoinche.arena.RulePlayer
 import justcoinche.arena.playTurn
@@ -37,9 +38,9 @@ import kotlinx.coroutines.delay
 import java.security.SecureRandom
 
 /**
- * The card table, in landscape: the human sits South with their hand fanned
- * along the bottom, the three computer players (rule players) around with
- * their cards face down, the auction then the tricks in the middle. A whole
+ * The card table, in landscape: the human's hand along the bottom edge, the
+ * three computer players (rule players) engraved around the felt, the auction
+ * then the tricks in the middle, the menu on a wooden side panel. A whole
  * game, saved after every move in [store] so that it resumes where it stopped.
  */
 @Composable
@@ -48,16 +49,19 @@ fun TableScreen(store: GameStore) {
     var game by remember { mutableStateOf(store.openGame()) }
     // Reset by every move: the result of a deal shows once its last trick has been seen.
     var showResult by remember(game) { mutableStateOf(false) }
+    var menuOpen by remember { mutableStateOf(false) }
     val update: (Game) -> Unit = { next ->
         store.save(next)
         game = next
     }
 
     // Runs again after every move: the computer players act one after the
-    // other, with a pause so that every bid and card can be followed.
-    LaunchedEffect(game) {
+    // other, with a pause so that every bid and card can be followed. The
+    // game waits while the menu is open.
+    LaunchedEffect(game, menuOpen) {
         val round = game.currentRound
         when {
+            menuOpen -> Unit
             round == null && game.results.isEmpty() -> update(game.deal(newDeal()))
             round == null -> {
                 delay(TRICK_PAUSE_MS) // the last trick is gathered before the result
@@ -71,30 +75,37 @@ fun TableScreen(store: GameStore) {
     }
 
     val round = game.shownRound ?: return
-    Box(Modifier.fillMaxSize().background(FELT)) {
+    Felt {
         BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding()) {
             val geometry = remember(maxWidth, maxHeight) { TableGeometry(maxWidth, maxHeight) }
-            Table(game, round, geometry, update)
+            MenuButton(Modifier.place(geometry.menuButton)) { menuOpen = true }
+            ScoreLine(game, round, Modifier.place(geometry.scoreLine))
+            Seat.entries.forEach { seat -> NameTag(round, seat, Modifier.place(geometry.nameTag(seat))) }
+            Cards(game, round, geometry, update)
             val actions = MiddleActions(
                 onBid = { bid -> update(game.call(HUMAN, bid)) },
                 onNextDeal = { update(game.deal(newDeal())) },
                 onNewGame = { game = store.start(Rules(), Seat.entries.random()) },
             )
             Middle(game, round, geometry, showResult, actions)
-            Toolbar(round, geometry) { note -> store.signal(game, note) }
         }
+        SideMenu(
+            open = menuOpen,
+            game = game,
+            onClose = { menuOpen = false },
+            onSignal = { note -> store.signal(game, note) },
+            onNewGame = {
+                game = store.start(Rules(), Seat.entries.random())
+                menuOpen = false
+            },
+        )
     }
 }
 
-/** Everything on the table but the middle panels: cards, names, score. */
+/** The trick in the middle and the human's hand. */
 @Composable
-private fun Table(game: Game, round: Round, geometry: TableGeometry, update: (Game) -> Unit) {
+private fun Cards(game: Game, round: Round, geometry: TableGeometry, update: (Game) -> Unit) {
     val type = round.contract?.type ?: ContractType.NoTrump
-    ScoreBoard(game, round, Modifier.place(geometry.scoreBoard))
-    Seat.entries.forEach { seat ->
-        if (seat != HUMAN) OpponentBacks(seat, round.handOf(seat).size, geometry)
-        NameTag(round, seat, Modifier.place(geometry.nameTag(seat)))
-    }
     round.shownTrick?.let { TrickLayer(it, type, round.handOf(HUMAN), geometry) }
     val playable = if (round.toAct == HUMAN && round.phase == Round.Phase.PLAYING) {
         round.viewFor(HUMAN).playableCards
@@ -113,7 +124,7 @@ private fun Middle(game: Game, round: Round, geometry: TableGeometry, showResult
     val middle = geometry.middle
     when {
         showResult -> {
-            // The hands are empty at the end of a deal: the result may use their room too.
+            // The hand is empty at the end of a deal: the result may use its room too.
             val area = middle.copy(height = geometry.height - middle.top - TableGeometry.MARGIN)
             Box(Modifier.place(area), contentAlignment = Alignment.Center) {
                 DealResultPanel(game, geometry, actions.onNextDeal, actions.onNewGame)
@@ -126,56 +137,58 @@ private fun Middle(game: Game, round: Round, geometry: TableGeometry, showResult
     }
 }
 
-/** A player's name, a dealer's token, and what they said or the contract they hold; gold on their turn. */
+/**
+ * A player's name engraved in the felt, a small mark above it, the dealer's
+ * chip beside it, and under it a pill with their last bid or their contract.
+ * The name lights up in gold on their turn.
+ */
 @Composable
 private fun NameTag(round: Round, seat: Seat, modifier: Modifier) {
     val contract = round.contract
     val said = when {
-        contract != null && contract.declarer == seat -> "prend ${contract.label}"
-        contract != null -> ""
-        else -> round.lastCalls[seat]?.label.orEmpty()
+        contract != null && contract.declarer == seat -> contract.label
+        contract != null -> null
+        else -> round.lastCalls[seat]?.label
     }
     val active = round.toAct == seat
-    val pulse by rememberInfiniteTransition(label = "turn").animateFloat(
-        initialValue = 1f,
-        targetValue = PULSE_LOW,
-        animationSpec = infiniteRepeatable(tween(PULSE_MS), RepeatMode.Reverse),
-        label = "pulse",
-    )
-    Panel(modifier.alpha(if (active) pulse else 1f), highlighted = active) {
-        val dealer = if (seat == round.dealer) "  ●D" else ""
-        FeltText((if (seat == HUMAN) "Toi" else seat.label) + dealer, bold = true)
-        val waiting = when {
-            !active -> " "
-            seat == HUMAN -> "à toi"
-            else -> "réfléchit…"
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Engraved(if (seat == HUMAN) "Toi" else seat.label, lit = active)
+            if (seat == round.dealer) DealerChip()
         }
-        FeltText(said.ifEmpty { waiting }, color = if (said.isEmpty()) DIM_TEXT else GOLD)
+        when {
+            said != null -> Pill(said, gold = contract != null)
+            active && seat == HUMAN && round.phase == Round.Phase.PLAYING -> Pill("à toi !", gold = true)
+        }
     }
 }
 
-/** The game score and the deal's contract and points. */
+/** The game score and, during the play, the points won so far in the deal. */
 @Composable
-private fun ScoreBoard(game: Game, round: Round, modifier: Modifier) {
-    Panel(modifier) {
-        val score = "Nous ${game.scores[Team.NORTH_SOUTH]} · Eux ${game.scores[Team.EAST_WEST]}"
-        FeltText(score, size = 15.sp, bold = true)
-        val contract = round.contract
+private fun ScoreLine(game: Game, round: Round, modifier: Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.Center) {
+        Engraved("Nous ${game.scores[Team.NORTH_SOUTH]} · Eux ${game.scores[Team.EAST_WEST]}", size = 16.sp)
         val play = round.cardPlay
-        if (contract != null && play != null) {
-            FeltText("${contract.label} · ${contract.declarer.label}", color = GOLD)
-            val points = "points ${play.points(Team.NORTH_SOUTH)} – ${play.points(Team.EAST_WEST)}"
-            FeltText("$points · sur ${game.rules.targetScore}", size = 11.sp, color = DIM_TEXT)
+        val detail = if (play != null && round.contract != null) {
+            "donne ${play.points(Team.NORTH_SOUTH)} – ${play.points(Team.EAST_WEST)} · sur ${game.rules.targetScore}"
         } else {
-            FeltText("partie en ${game.rules.targetScore}", size = 11.sp, color = DIM_TEXT)
+            "partie en ${game.rules.targetScore}"
         }
+        Engraved(detail, size = 12.sp)
+    }
+}
+
+/** The square button that opens the side menu. */
+@Composable
+private fun MenuButton(modifier: Modifier, onClick: () -> Unit) {
+    Surface(onClick = onClick, modifier = modifier, shape = RoundedCornerShape(10.dp), color = SHADE) {
+        Box(contentAlignment = Alignment.Center) { Text("☰", color = Color.White, fontSize = 26.sp) }
     }
 }
 
 /** A fresh deal from an unpredictable 64-bit seed. */
 private fun newDeal(): Deal = Deal.random(SecureRandom().nextLong())
 
-private const val BOT_PAUSE_MS = 750L
-private const val TRICK_PAUSE_MS = 1600L
-private const val PULSE_MS = 700
-private const val PULSE_LOW = 0.75f
+private val SHADE = Color(0x33000000)
+private const val BOT_PAUSE_MS = 800L
+private const val TRICK_PAUSE_MS = 1700L

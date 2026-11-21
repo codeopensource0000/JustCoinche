@@ -11,6 +11,7 @@ internal data class Area(val left: Dp, val top: Dp, val width: Dp, val height: D
     val right: Dp get() = left + width
     val bottom: Dp get() = top + height
     val topLeft: DpOffset get() = DpOffset(left, top)
+    val centre: DpOffset get() = DpOffset(left + width / 2, top + height / 2)
 
     fun overlaps(other: Area): Boolean =
         left < other.right && other.left < right && top < other.bottom && other.top < bottom
@@ -19,33 +20,33 @@ internal data class Area(val left: Dp, val top: Dp, val width: Dp, val height: D
 }
 
 /**
- * Where everything sits on a landscape table of [width] × [height]: all sizes
- * follow the screen's height, so that the table looks the same on any phone.
- * A plain calculation, unit tested on several screen sizes.
+ * Where everything sits on a landscape table of [width] × [height]. The cards
+ * take most of the screen: the human's hand runs off the bottom edge, as if
+ * held, and the trick fills the middle. Names are engraved in the felt around.
+ * Sizes follow the screen's height, so that the table looks the same on any
+ * phone. A plain calculation, unit tested on several screen sizes.
  */
 internal class TableGeometry(val width: Dp, val height: Dp) {
 
-    /** The human's cards: the largest, for comfortable reading and tapping. */
+    /** The human's cards: only their upper part shows above the bottom edge. */
     val handCard = DpSize(height * HAND_CARD_HEIGHT / CARD_RATIO, height * HAND_CARD_HEIGHT)
 
-    /** The cards in the middle of the table. */
-    val trickCard = DpSize(height * TRICK_CARD_HEIGHT / CARD_RATIO, height * TRICK_CARD_HEIGHT)
-
-    /** The backs of the opponents' cards, upright for North. West and East hold theirs sideways. */
-    val backCard = DpSize(height * BACK_CARD_HEIGHT / CARD_RATIO, height * BACK_CARD_HEIGHT)
+    /** The cards in the middle of the table; a little smaller on narrower screens, to leave room for the score. */
+    val trickCard: DpSize = minOf(height * TRICK_CARD_HEIGHT, width * TRICK_CARD_MAX_WIDTH_SHARE)
+        .let { h -> DpSize(h / CARD_RATIO, h) }
 
     /** How far a playable card rises when it is the human's turn. */
     val lift: Dp = handCard.height * LIFT
 
     val centerX: Dp = width / 2
 
-    /** The top of the human's cards, before any lift. */
-    private val handTop: Dp = height - handCard.height - MARGIN
+    /** Where the hand's cards start, before any lift: the rest of each card is below the screen. */
+    private val handTop: Dp = height - handCard.height * HAND_SHOWN
 
-    /** The middle of the trick, between North's cards and the human's hand. */
-    val centerY: Dp = (MARGIN + backCard.height + handTop - lift) / 2
+    /** The middle of the trick, between the top of the table and the lifted hand. */
+    val centerY: Dp = (MARGIN + handTop - lift - GAP) / 2
 
-    /** Where each seat's card lies in the trick. */
+    /** Where each seat's card lies in the trick: a cross of overlapping cards. */
     fun trickSlot(seat: Seat): Area {
         val (w, h) = trickCard
         val left = when (seat) {
@@ -70,19 +71,19 @@ internal class TableGeometry(val width: Dp, val height: Dp) {
             return Area(left, top, slots.maxOf { it.right } - left, slots.maxOf { it.bottom } - top)
         }
 
-    /** The [index]-th of [count] cards in the human's hand, before any lift. */
+    /** The [index]-th of [count] cards in the human's hand, before any lift (it runs off the screen). */
     fun handSlot(index: Int, count: Int): Area {
         val step = handStep(count)
         val total = step * (count - 1).coerceAtLeast(0) + handCard.width
         return Area(centerX - total / 2 + step * index, handTop, handCard.width, handCard.height)
     }
 
-    /** The space taken by a full hand, lifted cards included. */
+    /** The visible part of a full hand, lifted cards included. */
     val handArea: Area
         get() {
             val first = handSlot(0, FULL_HAND)
             val last = handSlot(FULL_HAND - 1, FULL_HAND)
-            return Area(first.left, first.top - lift, last.right - first.left, first.height + lift)
+            return Area(first.left, handTop - lift, last.right - first.left, height - handTop + lift)
         }
 
     private fun handStep(count: Int): Dp = if (count <= 1) {
@@ -91,65 +92,50 @@ internal class TableGeometry(val width: Dp, val height: Dp) {
         minOf(handCard.width * HAND_OVERLAP, (width * HAND_MAX_WIDTH - handCard.width) / (count - 1))
     }
 
-    /** The [index]-th of [count] backs in front of an opponent. */
-    fun backSlot(seat: Seat, index: Int, count: Int): Area {
-        val (w, h) = backCard
-        return when (seat) {
-            Seat.NORTH -> {
-                val step = w * BACK_OVERLAP
-                val total = step * (count - 1).coerceAtLeast(0) + w
-                Area(centerX - total / 2 + step * index, MARGIN, w, h)
-            }
-            Seat.WEST, Seat.EAST -> {
-                // Held sideways: the card is as wide as an upright one is tall.
-                val step = w * BACK_OVERLAP
-                val full = step * (FULL_HAND - 1) + w
-                val total = step * (count - 1).coerceAtLeast(0) + w
-                // Centred beside the trick, but always below the score board.
-                val top = maxOf(centerY - full / 2, MARGIN + SCORE_BOARD.height + GAP) + (full - total) / 2
-                val left = if (seat == Seat.WEST) MARGIN else width - MARGIN - h
-                Area(left, top + step * index, h, w)
-            }
-            Seat.SOUTH -> handSlot(index, count)
+    /**
+     * A player's name engraved in the felt, with the pill of their last bid
+     * under it: North beside the trick, West and East on the sides, the human
+     * left of their hand.
+     */
+    fun nameTag(seat: Seat): Area {
+        val (x, y) = when (seat) {
+            Seat.NORTH -> trickArea.right + TAG_SPACE + TAG.width / 2 to MARGIN + TAG.height / 2
+            Seat.WEST -> width * SIDE_X to centerY
+            Seat.EAST -> width * (1 - SIDE_X) to centerY
+            Seat.SOUTH -> southTagCentre()
+        }
+        return Area(x - TAG.width / 2, y - TAG.height / 2, TAG.width, TAG.height)
+    }
+
+    /** Left of the hand when there is room for it, else above the hand's left end. */
+    private fun southTagCentre(): Pair<Dp, Dp> {
+        val besideHand = handArea.left - TAG_SPACE - TAG.width / 2
+        return if (besideHand - TAG.width / 2 >= MARGIN) {
+            besideHand to height - TAG.height / 2 - MARGIN
+        } else {
+            MARGIN + TAG.width / 2 to handArea.top - GAP - TAG.height / 2
         }
     }
 
-    /** The space taken by a full set of backs in front of an opponent. */
-    fun backArea(seat: Seat): Area {
-        val first = backSlot(seat, 0, FULL_HAND)
-        val last = backSlot(seat, FULL_HAND - 1, FULL_HAND)
-        return Area(first.left, first.top, last.right - first.left, last.bottom - first.top)
-    }
+    /** Where a seat's cards come from and where the tricks it wins go. */
+    fun anchor(seat: Seat): DpOffset =
+        if (seat == Seat.SOUTH) DpOffset(centerX, height) else nameTag(seat).centre
 
-    /** Where a seat's cards come from and where the tricks it wins go: the middle of its hand. */
-    fun anchor(seat: Seat): DpOffset {
-        val area = if (seat == Seat.SOUTH) handArea else backArea(seat)
-        return DpOffset(area.left + area.width / 2, area.top + area.height / 2)
-    }
+    /** The menu button, top left. */
+    val menuButton: Area get() = Area(MARGIN, MARGIN, MENU.width, MENU.height)
 
-    /** A player's name tag: beside North's cards, under West's and East's, in the corner for the human. */
-    fun nameTag(seat: Seat): Area = when (seat) {
-        Seat.NORTH -> Area(backArea(Seat.NORTH).right + GAP, MARGIN, TAG.width, TAG.height)
-        Seat.WEST -> Area(MARGIN, backArea(Seat.WEST).bottom + GAP, TAG.width, TAG.height)
-        Seat.EAST -> Area(width - MARGIN - TAG.width, backArea(Seat.EAST).bottom + GAP, TAG.width, TAG.height)
-        Seat.SOUTH -> Area(MARGIN, height - MARGIN - TAG.height, TAG.width, TAG.height)
-    }
-
-    /** The game score and the contract, top left. */
-    val scoreBoard: Area get() = Area(MARGIN, MARGIN, SCORE_BOARD.width, SCORE_BOARD.height)
-
-    /** The buttons (last trick, signal), top right. */
-    val toolbar: Area get() = Area(width - MARGIN - TOOLBAR.width, MARGIN, TOOLBAR.width, TOOLBAR.height)
+    /** The game score, beside the menu button. */
+    val scoreLine: Area get() = Area(menuButton.right + GAP, MARGIN, SCORE.width, SCORE.height)
 
     /**
-     * The free middle of the table, between the opponents' cards and above the
+     * The free middle of the table, between the side players and above the
      * hand: the bidding panel and the deal's result are drawn there.
      */
     val middle: Area
         get() {
-            val left = backArea(Seat.WEST).right + GAP
-            val top = backArea(Seat.NORTH).bottom + GAP
-            return Area(left, top, backArea(Seat.EAST).left - GAP - left, handArea.top - GAP - top)
+            val left = nameTag(Seat.WEST).right + GAP
+            val top = scoreLine.bottom + GAP
+            return Area(left, top, nameTag(Seat.EAST).left - GAP - left, handArea.top - GAP - top)
         }
 
     /** The top-left corner that puts a card of [size] centred on [point]. */
@@ -157,21 +143,23 @@ internal class TableGeometry(val width: Dp, val height: Dp) {
         DpOffset(point.x - size.width / 2, point.y - size.height / 2)
 
     companion object {
-        const val CARD_RATIO = 1.4f
+        const val CARD_RATIO = 1.42f
         const val FULL_HAND = 8
-        val MARGIN = 6.dp
+        val MARGIN = 8.dp
         private val GAP = 4.dp
-        val TAG = DpSize(104.dp, 50.dp)
-        private val SCORE_BOARD = DpSize(176.dp, 88.dp)
-        private val TOOLBAR = DpSize(116.dp, 80.dp)
-        private const val HAND_CARD_HEIGHT = 0.29f
-        private const val TRICK_CARD_HEIGHT = 0.21f
-        private const val BACK_CARD_HEIGHT = 0.15f
-        private const val LIFT = 0.12f
-        private const val HAND_OVERLAP = 0.62f
-        private const val HAND_MAX_WIDTH = 0.62f
-        private const val BACK_OVERLAP = 0.28f
-        private const val TRICK_SPREAD_X = 0.95f
-        private const val TRICK_SPREAD_Y = 0.42f
+        private val TAG_SPACE = 16.dp
+        val TAG = DpSize(112.dp, 64.dp)
+        private val MENU = DpSize(48.dp, 48.dp)
+        private val SCORE = DpSize(150.dp, 48.dp)
+        private const val HAND_CARD_HEIGHT = 0.44f
+        private const val HAND_SHOWN = 0.70f
+        private const val TRICK_CARD_HEIGHT = 0.39f
+        private const val TRICK_CARD_MAX_WIDTH_SHARE = 0.20f
+        private const val LIFT = 0.10f
+        private const val HAND_OVERLAP = 0.56f
+        private const val HAND_MAX_WIDTH = 0.70f
+        private const val TRICK_SPREAD_X = 0.72f
+        private const val TRICK_SPREAD_Y = 0.22f
+        private const val SIDE_X = 0.10f
     }
 }

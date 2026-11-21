@@ -18,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.DpOffset
-import androidx.compose.ui.unit.DpSize
 import justcoinche.engine.Card
 import justcoinche.engine.CardSet
 import justcoinche.engine.ContractType
@@ -46,7 +45,7 @@ internal fun HandFan(
             val x by animateDpAsState(slot.left, tween(MOVE_MS), label = "hand card x")
             val top = if (canPlay) slot.top - geometry.lift else slot.top
             val y by animateDpAsState(top, tween(MOVE_MS), label = "lift")
-            // A gentle fan: the cards turn a little around their bottom edge.
+            // A very gentle fan: the cards turn a little around their bottom edge.
             val angle = (index - (cards.size - 1) / 2f) * FAN_DEGREES
             CardFace(
                 card,
@@ -60,15 +59,6 @@ internal fun HandFan(
                 dimmed = myTurn && !canPlay,
             )
         }
-    }
-}
-
-/** The backs of the cards an opponent still holds: upright for North, sideways for West and East. */
-@Composable
-internal fun OpponentBacks(seat: Seat, count: Int, geometry: TableGeometry) {
-    repeat(count) { index ->
-        val slot = geometry.backSlot(seat, index, count)
-        CardBack(DpSize(slot.width, slot.height), Modifier.offset(slot.left, slot.top))
     }
 }
 
@@ -122,6 +112,7 @@ private fun origin(card: Card, seat: Seat, humanHand: CardSet, type: ContractTyp
         geometry.centredOn(geometry.anchor(seat), geometry.trickCard)
     }
 
+
 /** Each seat's card lies slightly askew, as if tossed on the table. */
 private val TILT = mapOf(Seat.SOUTH to 2f, Seat.WEST to -6f, Seat.NORTH to -2f, Seat.EAST to 6f)
 
@@ -129,4 +120,4 @@ private val BOTTOM_CENTRE = TransformOrigin(pivotFractionX = 0.5f, pivotFraction
 internal const val MOVE_MS = 300
 private const val GATHER_MS = 450
 private const val GATHER_DELAY_MS = 900L
-private const val FAN_DEGREES = 2.5f
+private const val FAN_DEGREES = 1.2f

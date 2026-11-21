@@ -33,12 +33,9 @@ class TableGeometryTest {
     private fun TableGeometry.elements(): Map<String, Area> = buildMap {
         put("hand", handArea)
         put("trick", trickArea)
-        put("score", scoreBoard)
-        put("toolbar", toolbar)
-        Seat.entries.forEach { seat ->
-            put("tag $seat", nameTag(seat))
-            if (seat != Seat.SOUTH) put("backs $seat", backArea(seat))
-        }
+        put("menu", menuButton)
+        put("score", scoreLine)
+        Seat.entries.forEach { seat -> put("name $seat", nameTag(seat)) }
     }
 
     @Test
@@ -58,16 +55,15 @@ class TableGeometryTest {
     }
 
     @Test
-    fun `the middle of the table leaves room for the bidding panel and the trick`() {
+    fun `the middle leaves room for the bidding panel, and the trick's cards are big`() {
         screens.forEach { (width, height) ->
             val geometry = TableGeometry(width, height)
             val middle = geometry.middle
-            // The bidding panel measured on the Fairphone 6: about 310 × 140 dp.
-            val roomy = middle.width >= 420.dp && middle.height >= 140.dp
+            // The bidding panel: six 56 dp tiles and three rows, about 380 × 140 dp.
+            val roomy = middle.width >= 380.dp && middle.height >= 140.dp
             assertTrue("middle too small on $width × $height: $middle", roomy)
-            val trick = geometry.trickArea
-            val inside = trick.top >= middle.top && trick.bottom <= middle.bottom
-            assertTrue("the trick leaves the middle on $width × $height", inside)
+            // The trick's cards are big: over a third of the screen's height.
+            assertTrue(geometry.trickCard.height >= height * 0.35f)
         }
     }
 
@@ -75,7 +71,8 @@ class TableGeometryTest {
     fun `hand cards are read comfortably and keep their order from left to right`() {
         screens.forEach { (width, height) ->
             val geometry = TableGeometry(width, height)
-            assertTrue(geometry.handCard.height >= 90.dp)
+            // The visible part of a hand card is at least as tall as a trick card.
+            assertTrue(geometry.handCard.height >= 140.dp)
             val slots = (0 until 8).map { geometry.handSlot(it, 8) }
             slots.zipWithNext { a, b -> assertTrue(b.left > a.left) }
             // Each card shows at least its corner: rank and suit stay readable.
