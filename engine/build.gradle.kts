@@ -42,3 +42,13 @@ tasks.register<JavaExec>("simulate") {
     mainClass.set("justcoinche.arena.SimulationKt")
     javaLauncher.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(25)) })
 }
+
+// A duplicate match between two AIs of the catalog:
+// ./gradlew :engine:duel --args="ia2 ia1 1000 7" (AI A, AI B, deals, seed).
+tasks.register<JavaExec>("duel") {
+    group = "application"
+    description = "Plays a duplicate match between two AIs of the catalog."
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("justcoinche.arena.DuelKt")
+    javaLauncher.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(25)) })
+}

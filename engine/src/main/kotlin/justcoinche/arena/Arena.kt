@@ -15,10 +15,19 @@ import kotlin.random.Random
 typealias PlayerFactory = (Seat) -> Player
 
 /**
+ * A player allowed to see the whole deal: a yardstick for the arena's
+ * measures, never a real opponent. The arena shows it each deal before play.
+ */
+interface Omniscient {
+    fun see(deal: Deal)
+}
+
+/**
  * Plays [start] to its end, asking each seat's player for its bids and cards.
  * Players speak in turn only: a coinche on the fly is not used by the arena.
  */
 fun playOut(start: Round, players: Map<Seat, Player>): Round {
+    players.values.filterIsInstance<Omniscient>().forEach { it.see(start.deal) }
     var round = start
     while (round.phase == Round.Phase.BIDDING) {
         val seat = round.auction.toSpeak
@@ -47,7 +56,13 @@ fun Game.playTurn(players: Map<Seat, Player>): Game {
 fun playGame(start: Game, players: Map<Seat, Player>, random: Random, afterMove: (Game) -> Unit = {}): Game {
     var game = start
     while (!game.isOver) {
-        game = if (game.currentRound == null) game.deal(Deal.random(random)) else game.playTurn(players)
+        game = if (game.currentRound == null) {
+            game.deal(Deal.random(random)).also { dealt ->
+                players.values.filterIsInstance<Omniscient>().forEach { it.see(checkNotNull(dealt.currentRound).deal) }
+            }
+        } else {
+            game.playTurn(players)
+        }
         afterMove(game)
     }
     return game
@@ -65,17 +80,37 @@ data class MatchResult(val deals: Int, val meanLead: Double, val margin95: Doubl
  * same cards and the luck of the deal cancels out. A deal's result is team A's
  * lead in points over both tables; a redeal counts 0.
  */
-fun duplicateMatch(teamA: PlayerFactory, teamB: PlayerFactory, deals: Int, seed: Long, rules: Rules): MatchResult {
+fun duplicateMatch(teamA: PlayerFactory, teamB: PlayerFactory, deals: Int, seed: Long, rules: Rules): MatchResult =
+    summarize(
+        duplicateRounds(teamA, teamB, deals, seed, rules).map { (first, second) ->
+            lead(first, Team.NORTH_SOUTH) + lead(second, Team.EAST_WEST)
+        },
+    )
+
+/**
+ * The rounds of a duplicate match, deal by deal: team A sits North-South in
+ * the first round of each pair and East-West in the second.
+ */
+fun duplicateRounds(
+    teamA: PlayerFactory,
+    teamB: PlayerFactory,
+    deals: Int,
+    seed: Long,
+    rules: Rules,
+): List<Pair<Round, Round>> {
     val random = Random(seed)
-    val leads = List(deals) { index ->
+    return List(deals) { index ->
         val deal = Deal.random(random)
         val dealer = Seat.entries[index % Seat.entries.size]
         val first = playOut(Round.start(dealer, deal, rules), seating(northSouth = teamA, eastWest = teamB))
         val second = playOut(Round.start(dealer, deal, rules), seating(northSouth = teamB, eastWest = teamA))
-        lead(first, Team.NORTH_SOUTH) + lead(second, Team.EAST_WEST)
+        first to second
     }
-    return summarize(leads)
 }
+
+/** Team A's lead over both tables of a pair of rounds, as [duplicateMatch] counts it. */
+internal fun duplicateLead(first: Round, second: Round): Int =
+    lead(first, Team.NORTH_SOUTH) + lead(second, Team.EAST_WEST)
 
 /** Mean and 95% margin (1.96 standard errors) of per-deal leads. */
 internal fun summarize(leads: List<Int>): MatchResult {
