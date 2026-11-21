@@ -26,9 +26,10 @@ class MainActivity : ComponentActivity() {
         }
         // One store for the activity: it remembers which record it is writing to.
         val store = GameStore(File(filesDir, "parties"))
+        val options = AiOptions(File(filesDir, "options/ia.txt"))
         setContent {
             MaterialTheme {
-                TableScreen(store)
+                TableScreen(store, options)
             }
         }
     }

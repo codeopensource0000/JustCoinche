@@ -21,55 +21,62 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import justcoinche.arena.RulePlayer
 import justcoinche.arena.playTurn
 import justcoinche.engine.Bid
 import justcoinche.engine.CardSet
 import justcoinche.engine.ContractType
 import justcoinche.engine.Deal
 import justcoinche.engine.Game
+import justcoinche.engine.Player
 import justcoinche.engine.Round
 import justcoinche.engine.Rules
 import justcoinche.engine.Seat
 import justcoinche.engine.Team
 import justcoinche.engine.viewFor
 import justcoinche.record.GameStore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.security.SecureRandom
 
 /**
  * The card table, in landscape: the human's hand along the bottom edge, the
- * three computer players (rule players) engraved around the felt, the auction
- * then the tricks in the middle, the menu on a wooden side panel. A whole
- * game, saved after every move in [store] so that it resumes where it stopped.
+ * three computer players engraved around the felt, the auction then the
+ * tricks in the middle, the menu on a wooden side panel. A whole game, saved
+ * after every move in [store] so that it resumes where it stopped. Which
+ * computer players sit at the table is chosen in the menu and kept in [options].
  */
 @Composable
-fun TableScreen(store: GameStore) {
-    val bots = remember { Seat.entries.filter { it != HUMAN }.associateWith { RulePlayer() } }
-    var game by remember { mutableStateOf(store.openGame()) }
+internal fun TableScreen(store: GameStore, options: AiOptions) {
+    val table = remember { TableState(store, options) }
+    val game = table.game
+    val bots = remember(table.choice) { table.choice.players(SecureRandom().nextLong()) }
+    // Players are not thread-safe: one decision at a time, a cancelled one may still be finishing.
+    val thinkingLock = remember { Mutex() }
     // Reset by every move: the result of a deal shows once its last trick has been seen.
     var showResult by remember(game) { mutableStateOf(false) }
-    var menuOpen by remember { mutableStateOf(false) }
-    val update: (Game) -> Unit = { next ->
-        store.save(next)
-        game = next
-    }
 
     // Runs again after every move: the computer players act one after the
-    // other, with a pause so that every bid and card can be followed. The
-    // game waits while the menu is open.
-    LaunchedEffect(game, menuOpen) {
+    // other, with a pause so that every bid and card can be followed. They
+    // think away from the interface thread, during the pause; if that takes
+    // longer, their name tag says so. The game waits while the menu is open.
+    LaunchedEffect(game, table.menuOpen, bots) {
         val round = game.currentRound
         when {
-            menuOpen -> Unit
-            round == null && game.results.isEmpty() -> update(game.deal(newDeal()))
+            table.menuOpen -> Unit
+            round == null && game.results.isEmpty() -> table.update(game.deal(newDeal()))
             round == null -> {
                 delay(TRICK_PAUSE_MS) // the last trick is gathered before the result
                 showResult = true
             }
             round.toAct != HUMAN -> {
-                delay(if (round.showsCompletedTrick) TRICK_PAUSE_MS else BOT_PAUSE_MS)
-                update(game.playTurn(bots))
+                val pause = if (round.showsCompletedTrick) TRICK_PAUSE_MS else BOT_PAUSE_MS
+                table.update(botTurn(game, bots, thinkingLock, pause) { table.thinking = it })
             }
         }
     }
@@ -78,28 +85,84 @@ fun TableScreen(store: GameStore) {
     Felt {
         BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding()) {
             val geometry = remember(maxWidth, maxHeight) { TableGeometry(maxWidth, maxHeight) }
-            MenuButton(Modifier.place(geometry.menuButton)) { menuOpen = true }
+            MenuButton(Modifier.place(geometry.menuButton)) { table.menuOpen = true }
             ScoreLine(game, round, Modifier.place(geometry.scoreLine))
-            Seat.entries.forEach { seat -> NameTag(round, seat, Modifier.place(geometry.nameTag(seat))) }
-            Cards(game, round, geometry, update)
+            Seat.entries.forEach { seat ->
+                NameTag(round, seat, table.thinking == seat, Modifier.place(geometry.nameTag(seat)))
+            }
+            Cards(game, round, geometry, table::update)
             val actions = MiddleActions(
-                onBid = { bid -> update(game.call(HUMAN, bid)) },
-                onNextDeal = { update(game.deal(newDeal())) },
-                onNewGame = { game = store.start(Rules(), Seat.entries.random()) },
+                onBid = { bid -> table.update(game.call(HUMAN, bid)) },
+                onNextDeal = { table.update(game.deal(newDeal())) },
+                onNewGame = table::newGame,
             )
             Middle(game, round, geometry, showResult, actions)
         }
-        SideMenu(
-            open = menuOpen,
-            game = game,
-            onClose = { menuOpen = false },
+        val menuActions = MenuActions(
+            onClose = { table.menuOpen = false },
             onSignal = { note -> store.signal(game, note) },
             onNewGame = {
-                game = store.start(Rules(), Seat.entries.random())
-                menuOpen = false
+                table.newGame()
+                table.menuOpen = false
             },
+            onChoice = table::choose,
         )
+        SideMenu(table.menuOpen, game, table.choice, menuActions)
     }
+}
+
+/**
+ * What the table remembers between two drawings, and the changes made to it:
+ * each move is saved in [store] before it shows, each choice of computer
+ * players in [options].
+ */
+private class TableState(private val store: GameStore, private val options: AiOptions) {
+    var choice by mutableStateOf(options.read())
+        private set
+    var game by mutableStateOf(store.openGame(choice.bySeat))
+        private set
+    var menuOpen by mutableStateOf(false)
+
+    /** The computer player thinking for longer than the pause, if any. */
+    var thinking by mutableStateOf<Seat?>(null)
+
+    fun update(next: Game) {
+        store.save(next)
+        game = next
+    }
+
+    fun newGame() {
+        game = store.start(Rules(), Seat.entries.random(), players = choice.bySeat)
+    }
+
+    fun choose(chosen: AiChoice) {
+        options.write(chosen)
+        choice = chosen
+    }
+}
+
+/**
+ * The computer player whose turn it is acts, thinking on a background thread
+ * while the [pause] runs, and never before it ends. If thinking outlasts the
+ * pause, [onThinking] names the seat until it is done.
+ */
+private suspend fun botTurn(
+    game: Game,
+    bots: Map<Seat, Player>,
+    lock: Mutex,
+    pause: Long,
+    onThinking: (Seat?) -> Unit,
+): Game = coroutineScope {
+    val waited = async { delay(pause) }
+    val badge = launch {
+        delay(pause)
+        onThinking(game.currentRound?.toAct)
+    }
+    val next = lock.withLock { withContext(Dispatchers.Default) { game.playTurn(bots) } }
+    badge.cancel()
+    onThinking(null)
+    waited.await()
+    next
 }
 
 /** The trick in the middle and the human's hand. */
@@ -143,7 +206,7 @@ private fun Middle(game: Game, round: Round, geometry: TableGeometry, showResult
  * The name lights up in gold on their turn.
  */
 @Composable
-private fun NameTag(round: Round, seat: Seat, modifier: Modifier) {
+private fun NameTag(round: Round, seat: Seat, thinking: Boolean, modifier: Modifier) {
     val contract = round.contract
     val said = when {
         contract != null && contract.declarer == seat -> contract.label
@@ -157,6 +220,7 @@ private fun NameTag(round: Round, seat: Seat, modifier: Modifier) {
             if (seat == round.dealer) DealerChip()
         }
         when {
+            thinking -> Pill("réfléchit…", gold = false)
             said != null -> Pill(said, gold = contract != null)
             active && seat == HUMAN && round.phase == Round.Phase.PLAYING -> Pill("à toi !", gold = true)
         }

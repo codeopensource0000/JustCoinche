@@ -45,14 +45,19 @@ class GameStore(private val dir: File) {
             GameRecord.read(lines).takeIf { inProgress != null } ?: throw stale
         }
 
-    /** Starts a new game, with a new record. */
-    fun start(rules: Rules, firstDealer: Seat, startedAt: LocalDateTime = LocalDateTime.now()): Game {
+    /** Starts a new game, with a new record naming the computer [players] by seat. */
+    fun start(
+        rules: Rules,
+        firstDealer: Seat,
+        startedAt: LocalDateTime = LocalDateTime.now(),
+        players: Map<Seat, String> = emptyMap(),
+    ): Game {
         dir.mkdirs()
         val stamp = startedAt.withNano(0)
         var file = File(dir, "partie-${stamp.format(FILE_STAMP)}.txt")
         var suffix = 1
         while (file.exists()) file = File(dir, "partie-${stamp.format(FILE_STAMP)}-${suffix++}.txt")
-        file.writeText(GameRecord.header(rules, firstDealer, stamp.toString()) + "\n")
+        file.writeText(GameRecord.header(rules, firstDealer, stamp.toString(), players) + "\n")
         record = file
         dealsWritten = 0
         return Game.start(rules, firstDealer).also { save(it) }

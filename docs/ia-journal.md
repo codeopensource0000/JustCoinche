@@ -137,3 +137,26 @@ l'arène. Les échecs sont notés tels quels.
 - **Écart au plan, noté tel quel** : un premier lancement du match de 800 donnes a échoué,
   parce que j'ai modifié le catalogue pendant que Gradle compilait pour ce match. Depuis, les
   matchs tournent à partir d'une copie figée des classes compilées.
+
+## Étape 5 — l'application (tag `ia-app`)
+
+- **Page « Options »** dans le menu en bois : deux colonnes, « Partenaire » et
+  « Adversaires », qui proposent toutes les IA honnêtes du catalogue (l'Oracle n'y est pas),
+  avec la description de celle choisie. Le choix est gardé dans `options/ia.txt` et compte
+  dès le coup suivant. Par défaut : `ia5-rapide`, la meilleure IA honnête mesurée à ce stade.
+- **Calcul en arrière-plan** : chaque coup d'un joueur ordinateur est calculé hors du fil de
+  l'interface, pendant la pause habituelle (0,8 s, 1,7 s après un pli). S'il dure plus
+  longtemps, son étiquette affiche « réfléchit… ». Un verrou garantit qu'un joueur ne calcule
+  jamais deux coups à la fois, même quand un calcul abandonné (menu ouvert) se termine en
+  arrière-plan.
+- **Enregistrement** : l'en-tête de chaque partie nomme l'IA de chaque place
+  (`ia E:ia5-rapide N:ia2 O:ia5-rapide`). Les anciens fichiers, sans ce champ, se lisent
+  toujours (test).
+- APK prêt : `app/build/outputs/apk/debug/app-debug.apk`. **Rien n'est installé sur le
+  téléphone.**
+- **Non vérifié à l'écran** : sans téléphone ni émulateur, je n'ai pas vu la page Options ni
+  le badge « réfléchit… ». Seule leur logique est testée (lecture et écriture du choix, repli
+  sur l'IA par défaut pour un identifiant inconnu ou tricheur, places). Sur le téléphone, les
+  experts seront plus lents que sur le Mac : en réglage rapide, la limite est d'une seconde
+  par coup, mais au moins 4 donnes sont toujours résolues, ce qui peut la dépasser au premier
+  pli.

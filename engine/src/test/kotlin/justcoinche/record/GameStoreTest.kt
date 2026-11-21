@@ -57,6 +57,21 @@ class GameStoreTest {
     }
 
     @Test
+    fun `the record names the computer player at each seat, and older records without them still read`() {
+        val store = GameStore(dir)
+        val ais = mapOf(Seat.NORTH to "ia2", Seat.EAST to "ia5", Seat.WEST to "ia5-fort")
+        val game = store.start(Rules(), Seat.WEST, noon, ais)
+        val record = store.records().single().readLines()
+        assertTrue(record.first().endsWith(" | ia E:ia5 N:ia2 O:ia5-fort"), record.first())
+        assertEquals(ais, GameRecord.players(record))
+        assertEquals(game.fingerprint(), GameRecord.read(record).fingerprint())
+
+        val older = listOf(GameRecord.header(Rules(), Seat.WEST, "2026-11-20T12:00"))
+        assertEquals(emptyMap(), GameRecord.players(older))
+        assertEquals(game.fingerprint(), GameRecord.read(older).fingerprint())
+    }
+
+    @Test
     fun `a signal names the deal and the move, and reading the record skips it`() {
         val store = GameStore(dir)
         var game = store.start(Rules(), Seat.WEST, noon)

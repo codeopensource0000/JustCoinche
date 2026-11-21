@@ -20,11 +20,12 @@ internal val HUMAN = Seat.SOUTH
 
 /**
  * Opens the game left unfinished last time or, if there is none, starts a new
- * one. A record that cannot be read is left on disk for analysis, and a new
- * game starts rather than the app failing at every launch.
+ * one, recording which computer [players] sit where. A record that cannot be
+ * read is left on disk for analysis, and a new game starts rather than the
+ * app failing at every launch.
  */
-internal fun GameStore.openGame(): Game =
-    runCatching { resume() }.getOrNull() ?: start(Rules(), Seat.entries.random())
+internal fun GameStore.openGame(players: Map<Seat, String> = emptyMap()): Game =
+    runCatching { resume() }.getOrNull() ?: start(Rules(), Seat.entries.random(), players = players)
 
 /** The deal on show: the one being played, or the last one finished while the next one waits. */
 internal val Game.shownRound: Round?

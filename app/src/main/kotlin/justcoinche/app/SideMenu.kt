@@ -48,8 +48,17 @@ private enum class MenuPage(val title: String) {
     SCORES("Scores"),
     LAST_TRICK("Dernier pli"),
     SIGNAL("Signaler"),
+    OPTIONS("Options"),
     NEW_GAME("Nouvelle partie"),
 }
+
+/** What the menu can do to the game. */
+internal class MenuActions(
+    val onClose: () -> Unit,
+    val onSignal: (String) -> Unit,
+    val onNewGame: () -> Unit,
+    val onChoice: (AiChoice) -> Unit,
+)
 
 /**
  * The menu, on a wooden board that slides over the table: tabs on the left,
@@ -57,14 +66,8 @@ private enum class MenuPage(val title: String) {
  * "Continuer" or the back gesture returns to the table.
  */
 @Composable
-internal fun SideMenu(
-    open: Boolean,
-    game: Game,
-    onClose: () -> Unit,
-    onSignal: (String) -> Unit,
-    onNewGame: () -> Unit,
-) {
-    BackHandler(enabled = open, onBack = onClose)
+internal fun SideMenu(open: Boolean, game: Game, choice: AiChoice, actions: MenuActions) {
+    BackHandler(enabled = open, onBack = actions.onClose)
     AnimatedVisibility(
         open,
         enter = slideInHorizontally { -it } + fadeIn(),
@@ -79,7 +82,7 @@ internal fun SideMenu(
                 Column(Modifier.width(TAB_WIDTH).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     MenuPage.entries.forEach { tab -> Tab(tab.title, selected = page == tab) { page = tab } }
                     Spacer(Modifier.weight(1f))
-                    Tab("▶  Continuer", selected = false, onClick = onClose)
+                    Tab("▶  Continuer", selected = false, onClick = actions.onClose)
                 }
                 LightPanel(Modifier.weight(1f).fillMaxHeight()) {
                     Text(page.title, color = INK.copy(alpha = 0.6f), fontSize = 26.sp, fontWeight = FontWeight.Bold)
@@ -87,8 +90,9 @@ internal fun SideMenu(
                     when (page) {
                         MenuPage.SCORES -> ScoresPage(game)
                         MenuPage.LAST_TRICK -> LastTrickPage(game.shownRound)
-                        MenuPage.SIGNAL -> SignalPage(onSignal)
-                        MenuPage.NEW_GAME -> NewGamePage(onNewGame)
+                        MenuPage.SIGNAL -> SignalPage(actions.onSignal)
+                        MenuPage.OPTIONS -> OptionsPage(choice, actions.onChoice)
+                        MenuPage.NEW_GAME -> NewGamePage(actions.onNewGame)
                     }
                 }
             }

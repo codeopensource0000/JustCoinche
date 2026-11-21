@@ -14,14 +14,16 @@ import justcoinche.engine.letter
  * signals in between. For example:
  *
  * ```
- * partie v1 | debut 2026-11-20T17:30:05 | premier-donneur O | regles pts-contrat,...,cible-1000
+ * partie v1 | debut 2026-11-20T17:30:05 | premier-donneur O | regles pts-contrat,...,cible-1000 | ia E:ia5 N:ia2 O:ia5
  * v1 | donneur O | regles ... | score NS 90 EO 0
  * signal | donne 2 | coup 17 | note Est aurait dû couper
  * v1 | donneur S | regles ... | score NS 0 EO 160
  * ```
  *
  * Reading a record replays every deal through [Game], so a record that
- * breaks a rule or disagrees with the scores is rejected.
+ * breaks a rule or disagrees with the scores is rejected. The "ia" field,
+ * which computer player sat where, was added later: older records simply
+ * lack it, and the reader ignores fields it does not use.
  */
 object GameRecord {
 
@@ -29,12 +31,24 @@ object GameRecord {
     private const val SEPARATOR = " | "
     private const val SIGNAL = "signal"
 
-    fun header(rules: Rules, firstDealer: Seat, startedAt: String): String = listOf(
-        VERSION,
-        "debut $startedAt",
-        "premier-donneur ${firstDealer.letter}",
-        "regles ${History.rulesNotation(rules)}",
-    ).joinToString(SEPARATOR)
+    fun header(rules: Rules, firstDealer: Seat, startedAt: String, players: Map<Seat, String> = emptyMap()): String =
+        listOfNotNull(
+            VERSION,
+            "debut $startedAt",
+            "premier-donneur ${firstDealer.letter}",
+            "regles ${History.rulesNotation(rules)}",
+            players.takeIf { it.isNotEmpty() }?.let { seats ->
+                "ia " + seats.entries.sortedBy { it.key.letter }.joinToString(" ") { "${it.key.letter}:${it.value}" }
+            },
+        ).joinToString(SEPARATOR)
+
+    /** Which computer player sat at each seat, as the header says; empty for records made before it did. */
+    fun players(lines: List<String>): Map<Seat, String> {
+        val field = lines.firstOrNull()?.split(SEPARATOR)?.firstOrNull { it.startsWith("ia ") } ?: return emptyMap()
+        return field.removePrefix("ia ").split(" ").associate { entry ->
+            parseSeat(entry.substringBefore(':')) to entry.substringAfter(':')
+        }
+    }
 
     /**
      * A signal: the player flags the current move as worth a look, for
