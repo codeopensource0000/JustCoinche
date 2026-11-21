@@ -53,6 +53,11 @@ object AiCatalog {
         "Expert PIMC + enchères",
         "Comme ia4, mais les donnes tirées doivent aussi expliquer les enchères entendues, lues avec le petit jeu.",
         Insight.AUCTION,
+    ) + experts(
+        "ia6",
+        "Expert PIMC + signaux",
+        "Comme ia5, et lit aussi les appels directs : une défausse quand le partenaire est maître montre l'As.",
+        Insight.AUCTION_AND_CALLS,
     )
 
     /** One expert at each effort: "ia4" thinks normally, "ia4-rapide" and "ia4-fort" less and more. */

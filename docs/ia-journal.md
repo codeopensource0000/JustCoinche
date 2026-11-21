@@ -160,3 +160,23 @@ l'arène. Les échecs sont notés tels quels.
   experts seront plus lents que sur le Mac : en réglage rapide, la limite est d'une seconde
   par coup, mais au moins 4 donnes sont toujours résolues, ce qui peut la dépasser au premier
   pli.
+
+## Étape 6 — `ia6` signaux (tag `ia6-signaux`)
+
+- **Lecture des appels** (`Inference.kt`, `CallReading`) : pour la première défausse de
+  chaque autre joueur sous la maîtrise de son partenaire, on rejoue le jeu de la carte d'ia2
+  avec la main tirée à ce moment-là. S'il ne défaussait pas dans la même couleur, la donne
+  perd du poids (× 0,2).
+- **Ce que la mesure a corrigé** : la première version lisait chaque telle défausse comme
+  « il a l'As de cette couleur ». Sur 600 donnes jouées par quatre ia2, la vraie donne ne
+  l'expliquait que 85 fois sur 197 : une défausse sous la maîtrise du partenaire est souvent
+  un cadeau de points et non un appel. La lecture par le jeu d'ia2 explique désormais la
+  vraie donne à chaque fois (test), et une donne tirée au hasard la contredit dans 47 cas
+  sur 600. Sabotage repéré : maîtrise de son propre camp prise pour celle du partenaire.
+- Les signaux eux-mêmes sont imposés par la convention sans code nouveau : à score égal, un
+  expert joue la carte que jouerait ia2, donc l'appel direct. Au décompte par défaut, les
+  égalités sont fréquentes (seul « fait ou chuté » compte).
+- **`ia6-rapide` contre `ia5-rapide`, 800 donnes (graine 11) : −0,0 ± 2,9 par donne, aucune
+  différence mesurable.** Les deux camps réussissent exactement les mêmes contrats (591 sur
+  795). La lecture des appels ne change presque jamais la décision. ia6 reste dans le
+  catalogue pour la comparaison, mais n'apporte rien en l'état.
