@@ -59,11 +59,11 @@ class TableGeometryTest {
         screens.forEach { (width, height) ->
             val geometry = TableGeometry(width, height)
             val middle = geometry.middle
-            // The bidding panel: six 56 dp tiles and three rows, about 380 × 140 dp.
+            // The bidding panel: six 48 dp keys and three rows, about 330 × 140 dp, with a margin.
             val roomy = middle.width >= 380.dp && middle.height >= 140.dp
             assertTrue("middle too small on $width × $height: $middle", roomy)
-            // The trick's cards are big: over a third of the screen's height.
-            assertTrue(geometry.trickCard.height >= height * 0.35f)
+            // The trick's cards are clear, but leave the felt room: from a quarter to a third of the height.
+            assertTrue(geometry.trickCard.height >= height * 0.25f && geometry.trickCard.height <= height / 3)
         }
     }
 
@@ -71,12 +71,13 @@ class TableGeometryTest {
     fun `hand cards are read comfortably and keep their order from left to right`() {
         screens.forEach { (width, height) ->
             val geometry = TableGeometry(width, height)
-            // The visible part of a hand card is at least as tall as a trick card.
-            assertTrue(geometry.handCard.height >= 140.dp)
+            // The hand takes under a third of the screen's height, lifted cards included.
+            assertTrue("hand too tall on $width × $height", geometry.handArea.height <= height * 0.3f)
+            assertTrue(geometry.handCard.height >= 100.dp)
             val slots = (0 until 8).map { geometry.handSlot(it, 8) }
             slots.zipWithNext { a, b -> assertTrue(b.left > a.left) }
-            // Each card shows at least its corner: rank and suit stay readable.
-            slots.zipWithNext { a, b -> assertTrue(b.left - a.left >= geometry.handCard.width * 0.4f) }
+            // The cards are not squeezed: each shows well over half its face.
+            slots.zipWithNext { a, b -> assertTrue(b.left - a.left >= geometry.handCard.width * 0.65f) }
         }
     }
 

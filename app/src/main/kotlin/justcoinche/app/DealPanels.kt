@@ -41,8 +41,8 @@ internal fun DealResultPanel(game: Game, geometry: TableGeometry, onNextDeal: ()
             AllHands(round, geometry)
         } else {
             val lines = dealSummary(game)
-            Text(lines.first(), color = headlineColor(round), fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            lines.drop(1).forEach { Text(it, color = INK, fontSize = 16.sp) }
+            Text(lines.first(), color = headlineColor(round), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            lines.drop(1).forEach { Text(it, color = INK, fontSize = 14.sp) }
         }
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

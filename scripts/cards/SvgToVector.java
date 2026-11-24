@@ -32,8 +32,9 @@ public class SvgToVector {
             String name = svg.getFileName().toString().replace(".svg", "");
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             String errors = Svg2Vector.parseSvgToXml(svg, bytes);
-            // Lint warns about long paths, a cost of the old View drawing; Compose draws each card
-            // once into an image at its size and reuses it.
+            // Lint warns about paths over 800 characters, a cost of the old View drawing; Compose
+            // draws each card once into an image at its size and reuses it. The real limit, 32767
+            // characters, is handled by split_long_paths.py and checked by DeckArtTest.
             String xml = NOTICE + bytes.toString(StandardCharsets.UTF_8).replaceFirst(
                     "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"",
                     "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"\n"

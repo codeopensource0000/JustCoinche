@@ -40,19 +40,19 @@ internal fun BiddingPanel(legalBids: List<Bid>, onBid: (Bid) -> Unit) {
         if (levels.isNotEmpty()) {
             val level = levels[index]
             Row(verticalAlignment = Alignment.CenterVertically) {
-                LightButton("◀", enabled = index > 0, width = 52.dp) { index-- }
+                LightButton("◀", enabled = index > 0, width = 44.dp) { index-- }
                 Text(
                     level.label,
                     color = Color.White,
-                    fontSize = 26.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.width(150.dp),
+                    modifier = Modifier.width(120.dp),
                 )
-                LightButton("▶", enabled = index < levels.lastIndex, width = 52.dp) { index++ }
+                LightButton("▶", enabled = index < levels.lastIndex, width = 44.dp) { index++ }
             }
             Row(
-                Modifier.height(54.dp),
+                Modifier.height(46.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -61,7 +61,7 @@ internal fun BiddingPanel(legalBids: List<Bid>, onBid: (Bid) -> Unit) {
                     val red = type is ContractType.SuitTrump && type.trump in RED_SUITS
                     val size = if (type is ContractType.SuitTrump) SUIT_SIZE else KEY_SIZE
                     val look = KeyLook(size, if (red) RED_SUIT else Color.Black)
-                    LightButton(type.label, enabled = bid in legalBids, width = 56.dp, look = look) { onBid(bid) }
+                    LightButton(type.label, enabled = bid in legalBids, width = 48.dp, look = look) { onBid(bid) }
                 }
             }
         }
@@ -93,7 +93,7 @@ private fun LightButton(
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.size(width = width, height = 44.dp),
+        modifier = Modifier.size(width = width, height = 36.dp),
         shape = CircleShape,
         contentPadding = PaddingValues(0.dp),
         colors = ButtonDefaults.buttonColors(
@@ -111,6 +111,6 @@ private val RED_SUITS = setOf(Suit.HEARTS, Suit.DIAMONDS)
 private val KEY = Color(0xFFE6E6E6)
 private val KEY_DISABLED = Color(0x2EE6E6E6)
 private val KEY_DISABLED_TEXT = Color(0x66FFFFFF)
-private val ACTION_WIDTH = 150.dp
-private const val KEY_SIZE = 18
-private const val SUIT_SIZE = 26
+private val ACTION_WIDTH = 120.dp
+private const val KEY_SIZE = 15
+private const val SUIT_SIZE = 20

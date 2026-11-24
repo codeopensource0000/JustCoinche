@@ -20,9 +20,9 @@ internal data class Area(val left: Dp, val top: Dp, val width: Dp, val height: D
 }
 
 /**
- * Where everything sits on a landscape table of [width] × [height]. The cards
- * take most of the screen: the human's hand runs off the bottom edge, as if
- * held, and the trick fills the middle. Names are engraved in the felt around.
+ * Where everything sits on a landscape table of [width] × [height]. The
+ * human's hand runs off the bottom edge, as if held, each card showing most of
+ * its face; the trick lies in the middle. Both leave the felt room to breathe. Names are engraved in the felt around.
  * Sizes follow the screen's height, so that the table looks the same on any
  * phone. A plain calculation, unit tested on several screen sizes.
  */
@@ -149,16 +149,16 @@ internal class TableGeometry(val width: Dp, val height: Dp) {
         val MARGIN = 8.dp
         private val GAP = 4.dp
         private val TAG_SPACE = 16.dp
-        val TAG = DpSize(112.dp, 64.dp)
+        val TAG = DpSize(112.dp, 56.dp)
         private val MENU = DpSize(48.dp, 48.dp)
         private val SCORE = DpSize(150.dp, 48.dp)
-        private const val HAND_CARD_HEIGHT = 0.44f
-        private const val HAND_SHOWN = 0.70f
-        private const val TRICK_CARD_HEIGHT = 0.39f
+        private const val HAND_CARD_HEIGHT = 0.34f
+        private const val HAND_SHOWN = 0.66f
+        private const val TRICK_CARD_HEIGHT = 0.30f
         private const val TRICK_CARD_MAX_WIDTH_SHARE = 0.20f
-        private const val LIFT = 0.10f
-        private const val HAND_OVERLAP = 0.56f
-        private const val HAND_MAX_WIDTH = 0.70f
+        private const val LIFT = 0.12f
+        private const val HAND_OVERLAP = 0.80f
+        private const val HAND_MAX_WIDTH = 0.78f
         private const val TRICK_SPREAD_X = 0.72f
         private const val TRICK_SPREAD_Y = 0.22f
         private const val SIDE_X = 0.10f

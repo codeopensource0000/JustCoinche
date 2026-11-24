@@ -49,11 +49,13 @@ import java.security.SecureRandom
  * three computer players engraved around the felt, the auction then the
  * tricks in the middle, the menu on a wooden side panel. A whole game, saved
  * after every move in [store] so that it resumes where it stopped. Which
- * computer players sit at the table is chosen in the menu and kept in [options].
+ * computer players sit at the table, and how fast the cards move, are chosen
+ * in the menu and kept in [options] and [timingOptions].
  */
 @Composable
-internal fun TableScreen(store: GameStore, options: AiOptions) {
-    val table = remember { TableState(store, options) }
+internal fun TableScreen(store: GameStore, options: AiOptions, timingOptions: TimingOptions) {
+    val table = remember { TableState(store, options, timingOptions) }
+    val timing = table.timing
     val game = table.game
     val bots = remember(table.choice) { table.choice.players(SecureRandom().nextLong()) }
     // Players are not thread-safe: one decision at a time, a cancelled one may still be finishing.
@@ -71,11 +73,11 @@ internal fun TableScreen(store: GameStore, options: AiOptions) {
             table.menuOpen -> Unit
             round == null && game.results.isEmpty() -> table.update(game.deal(newDeal()))
             round == null -> {
-                delay(TRICK_PAUSE_MS) // the last trick is gathered before the result
+                delay(timing.trickPauseMs) // the last trick is gathered before the result
                 showResult = true
             }
             round.toAct != HUMAN -> {
-                val pause = if (round.showsCompletedTrick) TRICK_PAUSE_MS else BOT_PAUSE_MS
+                val pause = if (round.showsCompletedTrick) timing.trickPauseMs else timing.botPauseMs
                 table.update(botTurn(game, bots, thinkingLock, pause) { table.thinking = it })
             }
         }
@@ -90,7 +92,7 @@ internal fun TableScreen(store: GameStore, options: AiOptions) {
             Seat.entries.forEach { seat ->
                 NameTag(round, seat, table.thinking == seat, Modifier.place(geometry.nameTag(seat)))
             }
-            Cards(game, round, geometry, table::update)
+            Cards(game, round, geometry, timing, table::update)
             val actions = MiddleActions(
                 onBid = { bid -> table.update(game.call(HUMAN, bid)) },
                 onNextDeal = { table.update(game.deal(newDeal())) },
@@ -106,18 +108,25 @@ internal fun TableScreen(store: GameStore, options: AiOptions) {
                 table.menuOpen = false
             },
             onChoice = table::choose,
+            onTiming = table::chooseTiming,
         )
-        SideMenu(table.menuOpen, game, table.choice, menuActions)
+        SideMenu(table.menuOpen, game, table.choice, timing, menuActions)
     }
 }
 
 /**
  * What the table remembers between two drawings, and the changes made to it:
  * each move is saved in [store] before it shows, each choice of computer
- * players in [options].
+ * players in [options], each choice of speeds in [timingOptions].
  */
-private class TableState(private val store: GameStore, private val options: AiOptions) {
+private class TableState(
+    private val store: GameStore,
+    private val options: AiOptions,
+    private val timingOptions: TimingOptions,
+) {
     var choice by mutableStateOf(options.read())
+        private set
+    var timing by mutableStateOf(timingOptions.read())
         private set
     var game by mutableStateOf(store.openGame(choice.bySeat))
         private set
@@ -138,6 +147,11 @@ private class TableState(private val store: GameStore, private val options: AiOp
     fun choose(chosen: AiChoice) {
         options.write(chosen)
         choice = chosen
+    }
+
+    fun chooseTiming(chosen: Timing) {
+        timingOptions.write(chosen)
+        timing = chosen
     }
 }
 
@@ -167,15 +181,17 @@ private suspend fun botTurn(
 
 /** The trick in the middle and the human's hand. */
 @Composable
-private fun Cards(game: Game, round: Round, geometry: TableGeometry, update: (Game) -> Unit) {
+private fun Cards(game: Game, round: Round, geometry: TableGeometry, timing: Timing, update: (Game) -> Unit) {
     val type = round.contract?.type ?: ContractType.NoTrump
-    round.shownTrick?.let { TrickLayer(it, type, round.handOf(HUMAN), geometry) }
+    round.shownTrick?.let { TrickLayer(it, type, round.handOf(HUMAN), geometry, timing) }
     val playable = if (round.toAct == HUMAN && round.phase == Round.Phase.PLAYING) {
         round.viewFor(HUMAN).playableCards
     } else {
         CardSet.EMPTY
     }
-    HandFan(sortedForDisplay(round.handOf(HUMAN), type), playable, geometry) { card -> update(game.play(card)) }
+    HandFan(sortedForDisplay(round.handOf(HUMAN), type), playable, geometry, timing) { card ->
+        update(game.play(card))
+    }
 }
 
 /** What the human can do from the middle panels. */
@@ -231,14 +247,14 @@ private fun NameTag(round: Round, seat: Seat, thinking: Boolean, modifier: Modif
 @Composable
 private fun ScoreLine(game: Game, round: Round, modifier: Modifier) {
     Column(modifier, verticalArrangement = Arrangement.Center) {
-        Engraved("Nous ${game.scores[Team.NORTH_SOUTH]} · Eux ${game.scores[Team.EAST_WEST]}", size = 16.sp)
+        Engraved("Nous ${game.scores[Team.NORTH_SOUTH]} · Eux ${game.scores[Team.EAST_WEST]}", size = 14.sp)
         val play = round.cardPlay
         val detail = if (play != null && round.contract != null) {
             "donne ${play.points(Team.NORTH_SOUTH)} – ${play.points(Team.EAST_WEST)} · sur ${game.rules.targetScore}"
         } else {
             "partie en ${game.rules.targetScore}"
         }
-        Engraved(detail, size = 12.sp)
+        Engraved(detail, size = 11.sp)
     }
 }
 
@@ -246,7 +262,7 @@ private fun ScoreLine(game: Game, round: Round, modifier: Modifier) {
 @Composable
 private fun MenuButton(modifier: Modifier, onClick: () -> Unit) {
     Surface(onClick = onClick, modifier = modifier, shape = RoundedCornerShape(10.dp), color = SHADE) {
-        Box(contentAlignment = Alignment.Center) { Text("☰", color = Color.White, fontSize = 26.sp) }
+        Box(contentAlignment = Alignment.Center) { Text("☰", color = Color.White, fontSize = 22.sp) }
     }
 }
 
@@ -254,5 +270,3 @@ private fun MenuButton(modifier: Modifier, onClick: () -> Unit) {
 private fun newDeal(): Deal = Deal.random(SecureRandom().nextLong())
 
 private val SHADE = Color(0x33000000)
-private const val BOT_PAUSE_MS = 800L
-private const val TRICK_PAUSE_MS = 1700L

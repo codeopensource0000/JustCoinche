@@ -24,6 +24,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.ImageShader
 import androidx.compose.ui.graphics.Shadow
@@ -34,10 +35,12 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
 
@@ -57,14 +60,40 @@ internal fun rememberGrain(): ImageBitmap = remember {
     Bitmap.createBitmap(pixels, GRAIN_SIZE, GRAIN_SIZE, Bitmap.Config.ARGB_8888).asImageBitmap()
 }
 
-/** The felt: deep green, lit from the middle, with a grain and a stitched border. */
+/**
+ * Broad soft clouds, a little lighter or darker, stretched over the whole
+ * felt: the uneven nap of a real cloth.
+ */
+@Composable
+private fun rememberMottle(): ImageBitmap = remember {
+    val random = Random(MOTTLE_SEED)
+    val pixels = IntArray(MOTTLE_WIDTH * MOTTLE_HEIGHT) {
+        val shade = if (random.nextBoolean()) LIGHT_SHADE else 0
+        (random.nextInt(MOTTLE_ALPHA) shl ALPHA_SHIFT) or (shade shl RED_SHIFT) or (shade shl GREEN_SHIFT) or shade
+    }
+    Bitmap.createBitmap(pixels, MOTTLE_WIDTH, MOTTLE_HEIGHT, Bitmap.Config.ARGB_8888).asImageBitmap()
+}
+
+/**
+ * The felt of a card room: deep green, lit from the middle and dark at the
+ * edges, with soft clouds in the nap, a fine grain and a stitched border.
+ */
 @Composable
 internal fun Felt(content: @Composable BoxScope.() -> Unit) {
     val grain = rememberGrain()
+    val mottle = rememberMottle()
     Box(
         Modifier.fillMaxSize().drawBehind {
             drawRect(Brush.radialGradient(listOf(FELT_LIGHT, FELT_DARK), radius = size.maxDimension * 0.62f))
-            drawRect(ShaderBrush(ImageShader(grain, TileMode.Repeated, TileMode.Repeated)))
+            // Stretched with smoothing, the few pixels of the mottle become broad clouds.
+            drawImage(
+                mottle,
+                dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
+                filterQuality = FilterQuality.Low,
+            )
+            // The grain twice: the cloth is coarser than the cards' paper, which has it once.
+            val fibres = ShaderBrush(ImageShader(grain, TileMode.Repeated, TileMode.Repeated))
+            repeat(2) { drawRect(fibres) }
             val inset = 14.dp.toPx()
             drawRoundRect(
                 FELT_SEAM,
@@ -80,7 +109,7 @@ internal fun Felt(content: @Composable BoxScope.() -> Unit) {
 
 /** A name engraved in the felt: darker than it, with a light edge below; gold when it is that player's turn. */
 @Composable
-internal fun Engraved(text: String, modifier: Modifier = Modifier, size: TextUnit = 22.sp, lit: Boolean = false) {
+internal fun Engraved(text: String, modifier: Modifier = Modifier, size: TextUnit = 17.sp, lit: Boolean = false) {
     Text(
         text,
         modifier,
@@ -100,9 +129,9 @@ internal fun Pill(text: String, modifier: Modifier = Modifier, gold: Boolean = f
     Surface(modifier, shape = CircleShape, color = PILL) {
         Text(
             text,
-            Modifier.padding(horizontal = 14.dp, vertical = 4.dp),
+            Modifier.padding(horizontal = 12.dp, vertical = 3.dp),
             color = if (gold) GOLD else Color.White,
-            fontSize = 17.sp,
+            fontSize = 14.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -113,7 +142,7 @@ internal fun Pill(text: String, modifier: Modifier = Modifier, gold: Boolean = f
 @Composable
 @Suppress("MagicNumber") // a drawing: each number is a proportion of the chip
 internal fun DealerChip(modifier: Modifier = Modifier) {
-    Box(modifier.size(30.dp), contentAlignment = Alignment.Center) {
+    Box(modifier.size(24.dp), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val r = size.minDimension / 2
             drawCircle(CHIP_RED, r)
@@ -126,14 +155,14 @@ internal fun DealerChip(modifier: Modifier = Modifier) {
             drawCircle(Color.White, r * 0.62f)
             drawCircle(CHIP_RED, r * 0.62f, style = Stroke(r * 0.08f))
         }
-        Text("D", color = CHIP_RED, fontWeight = FontWeight.Black, fontSize = 15.sp)
+        Text("D", color = CHIP_RED, fontWeight = FontWeight.Black, fontSize = 12.sp)
     }
 }
 
 /** A dark rounded panel over the felt, for the bidding. */
 @Composable
 internal fun DarkPanel(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Surface(modifier, shape = RoundedCornerShape(22.dp), color = PILL, shadowElevation = 8.dp) {
+    Surface(modifier, shape = RoundedCornerShape(18.dp), color = PILL, shadowElevation = 8.dp) {
         Column(Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally, content = content)
     }
 }
@@ -148,7 +177,7 @@ internal fun LightPanel(modifier: Modifier = Modifier, content: @Composable Colu
         border = BorderStroke(1.dp, PAPER_EDGE),
         shadowElevation = 10.dp,
     ) {
-        Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, content = content)
+        Column(Modifier.padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally, content = content)
     }
 }
 
@@ -182,11 +211,11 @@ internal val GOLD = Color(0xFFF5C542)
 internal val PAPER = Color(0xFFF1EDE8)
 internal val INK = Color(0xFF3B3632)
 internal val PILL = Color(0xF0161A17)
-private val FELT_LIGHT = Color(0xFF13843A)
-private val FELT_DARK = Color(0xFF07501F)
+private val FELT_LIGHT = Color(0xFF0D6532)
+private val FELT_DARK = Color(0xFF032A14)
 private val FELT_SEAM = Color(0x33000000)
-private val ENGRAVED = Color(0xFF053014)
-private val ENGRAVED_EDGE = Color(0x5CFFFFFF)
+private val ENGRAVED = Color(0xFF01180A)
+private val ENGRAVED_EDGE = Color(0x40FFFFFF)
 private val CHIP_RED = Color(0xFFD7262B)
 private val LIT_SHADOW = Color(0x99000000)
 private val PAPER_EDGE = Color(0x22000000)
@@ -194,6 +223,11 @@ private val WOOD = Color(0xFFA9622F)
 private val WOOD_DARK = Color(0xFF5A2E12)
 private const val GRAIN_SEED = 7
 private const val WOOD_SEED = 11
+private const val MOTTLE_SEED = 5
+private const val MOTTLE_WIDTH = 40
+private const val MOTTLE_HEIGHT = 20
+private const val MOTTLE_ALPHA = 12
+private const val LIGHT_SHADE = 255
 private const val GRAIN_SIZE = 160
 private const val GRAIN_SHADES = 256
 private const val GRAIN_ALPHA = 22

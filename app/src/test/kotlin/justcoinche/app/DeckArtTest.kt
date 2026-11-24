@@ -7,6 +7,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import javax.imageio.ImageIO
 
 class DeckArtTest {
 
@@ -33,13 +34,29 @@ class DeckArtTest {
     }
 
     @Test
-    fun `every drawing has the size the corner letters are placed for`() {
+    fun `every drawing has the shape the corner letters are placed for`() {
         Card.deck.forEach { card ->
             // Unit tests run from the app module's folder.
-            val xml = File("src/main/res/drawable/${drawingName(card)}.xml").readText()
-            assertTrue(card.toString(), "android:viewportWidth=\"$DECK_WIDTH\"" in xml)
-            assertTrue(card.toString(), "android:viewportHeight=\"$DECK_HEIGHT\"" in xml)
+            val vector = File("src/main/res/drawable/${drawingName(card)}.xml")
+            if (vector.exists()) {
+                val xml = vector.readText()
+                assertTrue(card.toString(), "android:viewportWidth=\"$DECK_WIDTH\"" in xml)
+                assertTrue(card.toString(), "android:viewportHeight=\"$DECK_HEIGHT\"" in xml)
+            } else {
+                // The court cards are images: see third_party/svg-cards/README.md.
+                val image = ImageIO.read(File("src/main/res/drawable-nodpi/${drawingName(card)}.png"))
+                assertEquals(card.toString(), DECK_HEIGHT / DECK_WIDTH, image.height.toFloat() / image.width, 0.005f)
+            }
         }
+    }
+
+    @Test
+    fun `no drawing holds a path too long for the compiled resources`() {
+        // A longer string is silently replaced by "STRING_TOO_LARGE" in the app, which crashes when drawn.
+        val longest = File("src/main/res/drawable").listFiles()!!.flatMap { file ->
+            Regex("android:pathData=\"([^\"]*)\"").findAll(file.readText()).map { it.groupValues[1].length }
+        }.max()
+        assertTrue("longest path: $longest characters", longest <= Short.MAX_VALUE)
     }
 
     @Test

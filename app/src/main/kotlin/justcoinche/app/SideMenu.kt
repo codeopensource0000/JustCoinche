@@ -49,6 +49,7 @@ private enum class MenuPage(val title: String) {
     LAST_TRICK("Dernier pli"),
     SIGNAL("Signaler"),
     OPTIONS("Options"),
+    PACE("Rythme"),
     NEW_GAME("Nouvelle partie"),
 }
 
@@ -58,6 +59,7 @@ internal class MenuActions(
     val onSignal: (String) -> Unit,
     val onNewGame: () -> Unit,
     val onChoice: (AiChoice) -> Unit,
+    val onTiming: (Timing) -> Unit,
 )
 
 /**
@@ -66,7 +68,7 @@ internal class MenuActions(
  * "Continuer" or the back gesture returns to the table.
  */
 @Composable
-internal fun SideMenu(open: Boolean, game: Game, choice: AiChoice, actions: MenuActions) {
+internal fun SideMenu(open: Boolean, game: Game, choice: AiChoice, timing: Timing, actions: MenuActions) {
     BackHandler(enabled = open, onBack = actions.onClose)
     AnimatedVisibility(
         open,
@@ -79,19 +81,20 @@ internal fun SideMenu(open: Boolean, game: Game, choice: AiChoice, actions: Menu
                 Modifier.fillMaxSize().safeDrawingPadding().padding(14.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Column(Modifier.width(TAB_WIDTH).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.width(TAB_WIDTH).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     MenuPage.entries.forEach { tab -> Tab(tab.title, selected = page == tab) { page = tab } }
                     Spacer(Modifier.weight(1f))
                     Tab("▶  Continuer", selected = false, onClick = actions.onClose)
                 }
                 LightPanel(Modifier.weight(1f).fillMaxHeight()) {
-                    Text(page.title, color = INK.copy(alpha = 0.6f), fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                    Text(page.title, color = INK.copy(alpha = 0.6f), fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(8.dp))
                     when (page) {
                         MenuPage.SCORES -> ScoresPage(game)
                         MenuPage.LAST_TRICK -> LastTrickPage(game.shownRound)
                         MenuPage.SIGNAL -> SignalPage(actions.onSignal)
                         MenuPage.OPTIONS -> OptionsPage(choice, actions.onChoice)
+                        MenuPage.PACE -> PacePage(timing, actions.onTiming)
                         MenuPage.NEW_GAME -> NewGamePage(actions.onNewGame)
                     }
                 }
@@ -104,16 +107,16 @@ internal fun SideMenu(open: Boolean, game: Game, choice: AiChoice, actions: Menu
 private fun Tab(text: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth().height(46.dp),
+        modifier = Modifier.fillMaxWidth().height(38.dp),
         shape = RoundedCornerShape(12.dp),
         color = if (selected) PAPER else TAB,
         shadowElevation = if (selected) 0.dp else 3.dp,
     ) {
         Text(
             text.uppercase(),
-            Modifier.padding(horizontal = 16.dp, vertical = 11.dp),
+            Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
             color = if (selected) INK else Color.White,
-            fontSize = 17.sp,
+            fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
         )
     }
