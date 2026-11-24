@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The app icon: two cards fanned in the hand, with the spade and heart of the deck
+     (SVG-cards 2.0.1, (C) 2005 David Bellot, GNU LGPL 2.1 or later). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="92"
+        android:rotation="-15">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M42.8,30H65.2A2.8,2.8 0,0 1,68 32.8V67.2A2.8,2.8 0,0 1,65.2 70H42.8A2.8,2.8 0,0 1,40 67.2V32.8A2.8,2.8 0,0 1,42.8 30Z"
+            android:strokeColor="#2A2A2A"
+            android:strokeWidth="0.8" />
+        <!-- The deck draws its pips upside down: turned the right way up here.
+             The spade sits high and left, where the front card leaves it in view. -->
+        <group
+            android:scaleX="-1.25"
+            android:scaleY="-1.25"
+            android:translateX="49"
+            android:translateY="46">
+            <path
+                android:fillColor="#000000"
+                android:pathData="M3.92,-7.93c-1.67,0 -2.55,1.78 -3.01,3.56c-0.46,1.78 -0.5,3.56 -0.5,3.56L-0.44,-0.8c0,0 -0.16,-7.13 -3.5,-7.13H3.92z" />
+            <path
+                android:fillColor="#000000"
+                android:pathData="M6.75,-0.8C6.74,2.67 1.53,5.19 0,7.93C-1.53,5.18 -6.74,2.66 -6.75,-0.8c0,-1.64 1.51,-2.97 3.38,-2.97C-1.51,-3.77 0,-2.44 0,-0.8c0,-1.64 1.51,-2.97 3.38,-2.97S6.75,-2.44 6.75,-0.8z" />
+        </group>
+    </group>
+    <group
+        android:pivotX="54"
+        android:pivotY="92"
+        android:rotation="10">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M42.8,30H65.2A2.8,2.8 0,0 1,68 32.8V67.2A2.8,2.8 0,0 1,65.2 70H42.8A2.8,2.8 0,0 1,40 67.2V32.8A2.8,2.8 0,0 1,42.8 30Z"
+            android:strokeColor="#2A2A2A"
+            android:strokeWidth="0.8" />
+        <group
+            android:scaleX="-1.45"
+            android:scaleY="-1.45"
+            android:translateX="54"
+            android:translateY="50">
+            <path
+                android:fillColor="#E6180A"
+                android:pathData="M-7.67,3.93c0.01,-4.71 5.91,-8.14 7.64,-11.87c1.75,3.72 7.66,7.12 7.7,11.83c0.01,2.22 -1.71,4.03 -3.82,4.03C1.73,7.92 0,6.13 0,3.91c0,2.23 -1.71,4.03 -3.82,4.03C-5.94,7.95 -7.66,6.15 -7.67,3.93z" />
+        </group>
+    </group>
+</vector>

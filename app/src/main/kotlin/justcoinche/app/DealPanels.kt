@@ -98,7 +98,7 @@ private fun AllHands(round: Round, geometry: TableGeometry) {
         listOf(Seat.NORTH, Seat.WEST, Seat.EAST, Seat.SOUTH).forEach { seat ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(if (seat == HUMAN) "Toi" else seat.label, Modifier.width(56.dp), color = INK)
-                sortedForDisplay(round.deal.hand(seat), type).forEach { CardFace(it, size) }
+                sortedForDisplay(round.deal.hand(seat), type).forEach { MiniCard(it, size) }
             }
         }
     }

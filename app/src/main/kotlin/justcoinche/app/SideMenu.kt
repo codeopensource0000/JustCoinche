@@ -213,4 +213,4 @@ private val TAB_WIDTH = 220.dp
 private const val NUMBER_COLUMN = 0.6f
 private const val CONTRACT_COLUMN = 2.4f
 private val TAB = Color(0xFF6E3B1A)
-private val MENU_CARD = DpSize(72.dp, 102.dp)
+private val MENU_CARD = DpSize(72.dp, 72.dp * TableGeometry.CARD_RATIO)

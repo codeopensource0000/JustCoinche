@@ -143,7 +143,8 @@ internal class TableGeometry(val width: Dp, val height: Dp) {
         DpOffset(point.x - size.width / 2, point.y - size.height / 2)
 
     companion object {
-        const val CARD_RATIO = 1.42f
+        /** A card's height over its width, as in the deck. */
+        const val CARD_RATIO = DECK_HEIGHT / DECK_WIDTH
         const val FULL_HAND = 8
         val MARGIN = 8.dp
         private val GAP = 4.dp
